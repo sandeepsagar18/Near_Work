@@ -13,6 +13,7 @@ router.use(authenticateJwt, requireCustomer);
 router.get('/profile', CustomerController.getProfile);
 router.get('/addresses', CustomerController.getAddresses);
 router.post('/addresses', validateRequest(createAddressSchema), CustomerController.addAddress);
+router.post('/live-location', CustomerController.updateLiveLocation);
 router.get('/bookings', CustomerController.getBookings);
 router.post('/reviews', validateRequest(createReviewSchema), CustomerController.createReview);
 

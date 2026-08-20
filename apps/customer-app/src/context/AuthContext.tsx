@@ -64,6 +64,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isDefault: true
       };
       setSelectedAddress(newAddress);
+
+      // Auto-sync real GPS location to MongoDB database
+      if (ApiClient.getAccessToken()) {
+        ApiClient.request('/customer/live-location', {
+          method: 'POST',
+          body: JSON.stringify({
+            latitude: liveLoc.latitude,
+            longitude: liveLoc.longitude,
+            addressLine: liveLoc.addressLine,
+            city: liveLoc.city,
+            state: liveLoc.state,
+            pincode: liveLoc.pincode,
+            label: 'Current Live GPS Location'
+          })
+        }).catch(() => {});
+      }
+
       return newAddress;
     } catch (e) {
       console.warn('Auto GPS location detection:', e);

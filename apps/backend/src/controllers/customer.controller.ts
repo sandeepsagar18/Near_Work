@@ -67,6 +67,63 @@ export class CustomerController {
   }
 
   /**
+   * Automatically update or upsert user's primary live GPS location in MongoDB Database
+   */
+  static async updateLiveLocation(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { latitude, longitude, addressLine, city, state, pincode, label } = req.body;
+
+      if (!latitude || !longitude) {
+        res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'Latitude and Longitude required' });
+        return;
+      }
+
+      // Check if user already has a live GPS address or default address
+      const existingAddress = await prisma.address.findFirst({
+        where: { userId: req.user!.id, isDefault: true }
+      });
+
+      let updatedAddress;
+      if (existingAddress) {
+        updatedAddress = await prisma.address.update({
+          where: { id: existingAddress.id },
+          data: {
+            addressLine: addressLine || existingAddress.addressLine,
+            city: city || existingAddress.city,
+            state: state || existingAddress.state,
+            pincode: pincode || existingAddress.pincode,
+            latitude: Number(latitude),
+            longitude: Number(longitude),
+            label: label || 'Live GPS Location'
+          }
+        });
+      } else {
+        updatedAddress = await prisma.address.create({
+          data: {
+            userId: req.user!.id,
+            addressLine: addressLine || 'Live Location, Gorakhpur',
+            city: city || 'Gorakhpur',
+            state: state || 'Uttar Pradesh',
+            pincode: pincode || '273001',
+            latitude: Number(latitude),
+            longitude: Number(longitude),
+            label: label || 'Live GPS Location',
+            isDefault: true
+          }
+        });
+      }
+
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: 'User database location updated to real live coordinates',
+        data: updatedAddress
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Get customer bookings with filtering (upcoming, active, completed, cancelled)
    */
   static async getBookings(req: Request, res: Response, next: NextFunction) {
