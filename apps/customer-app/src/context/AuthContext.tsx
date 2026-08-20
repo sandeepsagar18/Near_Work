@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ApiClient } from '../services/api';
 import { connectSocket, disconnectSocket } from '../services/socket';
+import { detectCurrentLocation } from '../services/location';
 
 interface CustomerUser {
   id: string;
@@ -15,6 +16,7 @@ interface AuthContextType {
   user: CustomerUser | null;
   selectedAddress: any | null;
   setSelectedAddress: (addr: any) => void;
+  acquireLiveGPSLocation: () => Promise<any>;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   register: (data: any) => Promise<{ success: boolean; message?: string }>;
@@ -26,17 +28,64 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<CustomerUser | null>(null);
-  const [selectedAddress, setSelectedAddress] = useState<any | null>(null);
+  const [selectedAddress, setSelectedAddressState] = useState<any | null>(() => {
+    try {
+      const saved = localStorage.getItem('nw_user_live_address');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const setSelectedAddress = (addr: any) => {
+    setSelectedAddressState(addr);
+    try {
+      if (addr) {
+        localStorage.setItem('nw_user_live_address', JSON.stringify(addr));
+      } else {
+        localStorage.removeItem('nw_user_live_address');
+      }
+    } catch {}
+  };
+
+  const acquireLiveGPSLocation = async () => {
+    try {
+      const liveLoc = await detectCurrentLocation();
+      const newAddress = {
+        id: 'gps-live-' + Date.now(),
+        label: 'Current Live GPS Location',
+        addressLine: liveLoc.addressLine,
+        city: liveLoc.city,
+        state: liveLoc.state,
+        pincode: liveLoc.pincode,
+        latitude: liveLoc.latitude,
+        longitude: liveLoc.longitude,
+        isDefault: true
+      };
+      setSelectedAddress(newAddress);
+      return newAddress;
+    } catch (e) {
+      console.warn('Auto GPS location detection:', e);
+      return null;
+    }
+  };
 
   const refreshProfile = async () => {
     try {
       const res = await ApiClient.request('/customer/profile');
       if (res.success && res.data) {
         setUser(res.data);
-        if (res.data.addresses && res.data.addresses.length > 0) {
-          const defaultAddr = res.data.addresses.find((a: any) => a.isDefault) || res.data.addresses[0];
-          setSelectedAddress(defaultAddr);
+        
+        // If no real GPS address was detected yet, trigger GPS acquisition
+        const savedLive = localStorage.getItem('nw_user_live_address');
+        if (!savedLive) {
+          acquireLiveGPSLocation().then((loc) => {
+            if (!loc && res.data.addresses && res.data.addresses.length > 0) {
+              const defaultAddr = res.data.addresses.find((a: any) => a.isDefault) || res.data.addresses[0];
+              setSelectedAddress(defaultAddr);
+            }
+          });
         }
         connectSocket();
       } else {
@@ -56,6 +105,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       refreshProfile();
     } else {
       setIsLoading(false);
+      // Auto-prompt location for guest customers as well
+      const savedLive = localStorage.getItem('nw_user_live_address');
+      if (!savedLive) {
+        acquireLiveGPSLocation();
+      }
     }
   }, []);
 
@@ -71,6 +125,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (res.data.user) {
           setUser(res.data.user);
         }
+        // Acquire real live GPS on login
+        acquireLiveGPSLocation();
         refreshProfile().catch(() => {});
         return { success: true };
       }
@@ -89,6 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (res.success && res.data?.tokens) {
         ApiClient.setTokens(res.data.tokens.accessToken, res.data.tokens.refreshToken);
+        acquireLiveGPSLocation();
         await refreshProfile();
         return { success: true };
       }
@@ -98,16 +155,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = async () => {
-    try {
-      await ApiClient.request('/auth/logout', { method: 'POST' });
-    } catch (e) {
-      // Ignore
-    }
-    ApiClient.clearTokens();
+  const logout = () => {
     setUser(null);
-    setSelectedAddress(null);
+    ApiClient.clearTokens();
     disconnectSocket();
+    localStorage.removeItem('nw_user_live_address');
   };
 
   return (
@@ -116,6 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         selectedAddress,
         setSelectedAddress,
+        acquireLiveGPSLocation,
         isLoading,
         login,
         register,
@@ -128,8 +181,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
 };
