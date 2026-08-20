@@ -108,6 +108,9 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, []);
 
+  const workerRef = React.useRef<any>(worker);
+  workerRef.current = worker;
+
   const activeJobAlertRef = React.useRef<any>(activeJobAlert);
   activeJobAlertRef.current = activeJobAlert;
   const declinedCountsRef = React.useRef<Record<string, number>>(declinedCounts);
@@ -173,8 +176,9 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }, 1000);
 
       const handleJobAssigned = (data: any) => {
-        // If worker is OFFLINE / INACTIVE, do not show any job alert!
-        if (worker.workerProfile?.status !== WorkerStatus.ONLINE) {
+        const currentWorker = workerRef.current || worker;
+        // If worker is explicitly OFFLINE, skip
+        if (currentWorker?.workerProfile?.status === WorkerStatus.OFFLINE) {
           return;
         }
         // If worker has already declined 2 times, do not show alert
