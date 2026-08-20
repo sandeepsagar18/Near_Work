@@ -8,6 +8,7 @@ import { AdminBookingsPage } from './pages/AdminBookingsPage';
 import { AdminServicesPage } from './pages/AdminServicesPage';
 import { AdminCouponsPage } from './pages/AdminCouponsPage';
 import { AdminPayoutsPage } from './pages/AdminPayoutsPage';
+import { AdminTicketsPage } from './pages/AdminTicketsPage';
 import { AdminAuthPage } from './pages/AdminAuthPage';
 
 const ProtectedAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -34,7 +35,7 @@ export function App() {
           <Route path="/services" element={<ProtectedAdminRoute><AdminServicesPage /></ProtectedAdminRoute>} />
           <Route path="/coupons" element={<ProtectedAdminRoute><AdminCouponsPage /></ProtectedAdminRoute>} />
           <Route path="/payouts" element={<ProtectedAdminRoute><AdminPayoutsPage /></ProtectedAdminRoute>} />
-          <Route path="/tickets" element={<ProtectedAdminRoute><AdminAnalyticsPage /></ProtectedAdminRoute>} />
+          <Route path="/tickets" element={<ProtectedAdminRoute><AdminTicketsPage /></ProtectedAdminRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
