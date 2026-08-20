@@ -148,10 +148,16 @@ export const WorkerDashboardPage: React.FC = () => {
           getDeclineCount(j.id) < 2
       )
     : null;
-  const activeJob = jobs.find((j) =>
-    ['WORKER_ACCEPTED', 'WORKER_EN_ROUTE', 'WORKER_ARRIVED', 'SERVICE_STARTED'].includes(j.status)
+  const activeJob = jobs.find(
+    (j) =>
+      ['WORKER_ACCEPTED', 'WORKER_EN_ROUTE', 'WORKER_ARRIVED', 'SERVICE_STARTED'].includes(j.status) &&
+      (j.workerId === worker.workerProfile.id || j.worker?.userId === worker.id || j.workerId === worker.id)
   );
-  const completedJobs = jobs.filter((j) => j.status === 'COMPLETED');
+  const completedJobs = jobs.filter(
+    (j) =>
+      j.status === 'COMPLETED' &&
+      (j.workerId === worker.workerProfile.id || j.worker?.userId === worker.id || j.workerId === worker.id)
+  );
 
   return (
     <div className="min-h-screen pb-24 bg-slate-950 text-slate-100">
