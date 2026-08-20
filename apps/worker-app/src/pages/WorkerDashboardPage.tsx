@@ -326,14 +326,28 @@ export const WorkerDashboardPage: React.FC = () => {
                   <span>{activeJob.address.addressLine}, {activeJob.address.city}</span>
                 </div>
 
-                <button
-                  onClick={() => navigate(`/job/${activeJob.id}`)}
-                  className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm rounded-2xl shadow-xl shadow-indigo-600/30 flex items-center justify-center space-x-2 transition-transform active:scale-95 cursor-pointer"
-                >
-                  <Navigation className="w-4 h-4 text-white" />
-                  <span>{t('worker.open_cockpit_btn', 'Open Live Navigation & Job Cockpit')}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  <button
+                    onClick={() => {
+                      if (activeJob.address?.latitude && activeJob.address?.longitude) {
+                        const url = `https://www.google.com/maps/dir/?api=1&destination=${activeJob.address.latitude},${activeJob.address.longitude}&travelmode=driving`;
+                        window.open(url, '_blank');
+                      }
+                    }}
+                    className="w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 font-bold text-xs sm:text-sm rounded-2xl flex items-center justify-center space-x-2 transition cursor-pointer"
+                  >
+                    <Navigation className="w-4 h-4 text-emerald-400" />
+                    <span>Navigate in Google Maps</span>
+                  </button>
+
+                  <button
+                    onClick={() => navigate(`/job/${activeJob.id}`)}
+                    className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm rounded-2xl shadow-xl shadow-indigo-600/30 flex items-center justify-center space-x-2 transition-transform active:scale-95 cursor-pointer"
+                  >
+                    <span>{t('worker.open_cockpit_btn', 'Open Job Cockpit')}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ) : !pendingAssignmentJob ? (
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">

@@ -220,6 +220,45 @@ export const ActiveJobPage: React.FC = () => {
     }
   };
 
+  const openGoogleMapsApp = () => {
+    if (!job?.address?.latitude || !job?.address?.longitude) return;
+    const lat = job.address.latitude;
+    const lng = job.address.longitude;
+
+    // Check mobile userAgent
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile) {
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      if (isAndroid) {
+        // Android Google Maps Intent
+        window.location.href = `google.navigation:q=${lat},${lng}&mode=d`;
+        setTimeout(() => {
+          window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`, '_blank');
+        }, 1200);
+        return;
+      } else {
+        // iOS Google Maps / Apple Maps
+        window.location.href = `comgooglemaps://?daddr=${lat},${lng}&directionsmode=driving`;
+        setTimeout(() => {
+          window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`, '_blank');
+        }, 1200);
+        return;
+      }
+    }
+
+    // Standard Desktop Web
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`, '_blank');
+  };
+
+  const copyAddressToClipboard = () => {
+    if (!job?.address) return;
+    const fullAddr = `${job.address.addressLine}, ${job.address.city}, ${job.address.state} - ${job.address.pincode}`;
+    navigator.clipboard.writeText(fullAddr).then(() => {
+      setSuccessMsg('📋 Destination address copied to clipboard!');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    });
+  };
+
   const handleStartService = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otpInput || otpInput.length !== 4) {
@@ -459,43 +498,58 @@ export const ActiveJobPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Device Locator GPS Map & Customer Details */}
           <div className="lg:col-span-6 space-y-6">
-            {/* Live Navigation & Dispatch Action Card (No Embedded Map Canvas) */}
+            {/* Live Navigation & Dispatch Action Card (Direct Google Maps Launcher) */}
             {job.address?.latitude && job.address?.longitude && !['CUSTOMER_CANCELLED', 'CANCELLED'].includes(job.status) && (
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 space-y-4 shadow-xl">
+              <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/30 rounded-3xl p-6 sm:p-7 space-y-5 shadow-2xl">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                      <Navigation className="w-5 h-5" />
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/30">
+                      <Navigation className="w-6 h-6 animate-pulse" />
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-white">Google Maps Navigation Cockpit</h3>
-                      <p className="text-xs text-slate-400">
-                        {isEnRoute ? 'Live GPS broadcasting to customer' : isArrived ? 'Arrived at customer premises' : 'Ready for service'}
+                      <h3 className="text-lg font-black text-white">Google Maps Driving Navigation</h3>
+                      <p className="text-xs text-indigo-200">
+                        {isEnRoute ? 'Direct turn-by-turn route to customer doorstep' : isArrived ? 'Arrived at customer premises' : 'Ready to start trip'}
                       </p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded-full border border-emerald-500/30">
+                  <span className="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950 px-3 py-1 rounded-full border border-emerald-500/30">
                     🟢 Live GPS Active
                   </span>
                 </div>
 
+                {/* Destination Preview & Copy Address Bar */}
+                <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-start space-x-2.5">
+                    <MapPin className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold text-white block">{job.address.addressLine}</span>
+                      <span className="text-slate-400">{job.address.city}, {job.address.state} - {job.address.pincode}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={copyAddressToClipboard}
+                    className="text-xs text-indigo-400 hover:text-indigo-300 font-bold bg-indigo-950/60 px-3 py-1.5 rounded-xl border border-indigo-500/20 whitespace-nowrap cursor-pointer"
+                  >
+                    📋 Copy Address
+                  </button>
+                </div>
+
+                {/* Big Action Buttons */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <button
-                    onClick={() => {
-                      const url = `https://www.google.com/maps/dir/?api=1&destination=${job.address.latitude},${job.address.longitude}&travelmode=driving`;
-                      window.open(url, '_blank');
-                    }}
-                    className="w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl text-xs font-bold flex items-center justify-center space-x-2 border border-slate-700 transition cursor-pointer"
+                    onClick={openGoogleMapsApp}
+                    className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center space-x-2 shadow-xl shadow-emerald-600/30 transition-transform active:scale-95 cursor-pointer"
                   >
-                    <ExternalLink className="w-4 h-4 text-emerald-400" />
-                    <span>Navigate in Google Maps</span>
+                    <Navigation className="w-4 h-4" />
+                    <span>Open in Google Maps App</span>
                   </button>
 
                   {isEnRoute && (
                     <button
                       onClick={handleMarkArrived}
                       disabled={isProcessing}
-                      className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-xs font-bold flex items-center justify-center space-x-2 shadow-lg shadow-emerald-600/30 transition cursor-pointer active:scale-95"
+                      className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center space-x-2 shadow-xl shadow-indigo-600/30 transition-transform active:scale-95 cursor-pointer"
                     >
                       <CheckCircle2 className="w-4 h-4" />
                       <span>{isProcessing ? 'Verifying Proximity...' : 'I Have Arrived'}</span>
