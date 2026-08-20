@@ -128,9 +128,6 @@ export const HomePage: React.FC = () => {
           </div>
         </section>
 
-        {/* Live GPS Location Detection Widget */}
-        <LiveLocationWidget onOpenModal={() => setShowAddressModal(true)} />
-
         {/* Available Promo Coupons Showcase */}
         <CouponShowcase />
 

@@ -14,7 +14,8 @@ import {
   Check,
   X,
   Bell,
-  RefreshCw
+  RefreshCw,
+  Navigation
 } from 'lucide-react';
 import { WorkerApiClient } from '../services/api';
 import { useWorkerAuth } from '../context/WorkerAuthContext';
@@ -324,32 +325,46 @@ export const WorkerDashboardPage: React.FC = () => {
                   <span>{activeJob.address.addressLine}, {activeJob.address.city}</span>
                 </div>
 
-                {activeJob.address?.latitude && activeJob.address?.longitude && (
-                  <div className="pt-2">
-                    <WorkerLiveNavigationMap
-                      customerLat={activeJob.address.latitude}
-                      customerLng={activeJob.address.longitude}
-                      customerAddress={`${activeJob.address.addressLine}, ${activeJob.address.city}`}
-                    />
-                  </div>
-                )}
-
                 <button
                   onClick={() => navigate(`/job/${activeJob.id}`)}
                   className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm rounded-2xl shadow-xl shadow-indigo-600/30 flex items-center justify-center space-x-2 transition-transform active:scale-95 cursor-pointer"
                 >
-                  <span>{t('worker.open_cockpit_btn', 'Open Job Execution Panel')}</span>
+                  <Navigation className="w-4 h-4 text-white" />
+                  <span>{t('worker.open_cockpit_btn', 'Open Live Navigation & Job Cockpit')}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             ) : !pendingAssignmentJob ? (
-              <div className="space-y-4">
-                <WorkerRadarWidget
-                  initialLat={worker?.workerProfile?.currentLat || 26.7606}
-                  initialLng={worker?.workerProfile?.currentLng || 83.3732}
-                  workerName={worker?.name || 'Service Partner'}
-                  isOnline={worker?.workerProfile?.status === 'ONLINE'}
-                />
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="relative flex h-3.5 w-3.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 shadow-[0_0_12px_#10b981]"></span>
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-white">Live Service Dispatch Radar</h3>
+                      <p className="text-xs text-slate-400">
+                        {isOnline ? 'Online & Listening for nearby service requests' : 'Offline — Toggle Online above to receive bookings'}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    isOnline ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'
+                  }`}>
+                    {isOnline ? 'Active' : 'Standby'}
+                  </span>
+                </div>
+
+                <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between text-xs text-slate-300">
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="w-4 h-4 text-emerald-400" />
+                    <span>Operating Service Zone: <strong>Gorakhpur, UP (2.5 km perimeter)</strong></span>
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-500/20">
+                    GPS Synced
+                  </span>
+                </div>
               </div>
             ) : null}
           </div>
