@@ -30,11 +30,8 @@ export const BookingConfirmationPage: React.FC = () => {
   const state = location.state as any;
 
   const [paymentMode, setPaymentMode] = useState<'ONLINE' | 'CASH'>('CASH');
-  const [couponCode, setCouponCode] = useState('WELCOME50');
-  const [appliedCoupon, setAppliedCoupon] = useState<any>({
-    code: 'WELCOME50',
-    discount: Math.round((state?.basePrice || 499) * 0.5 > 150 ? 150 : (state?.basePrice || 499) * 0.5)
-  });
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
   const [couponError, setCouponError] = useState('');
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);

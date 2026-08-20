@@ -41,7 +41,7 @@ export const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useLanguage();
-  const [activeWorkers, setActiveWorkers] = useState<any[]>([]);
+  const [activeCoupons, setActiveCoupons] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [featuredServices, setFeaturedServices] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -52,15 +52,15 @@ export const HomePage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [catRes, srvRes, wrkRes] = await Promise.all([
+        const [catRes, srvRes, cpnRes] = await Promise.all([
           ApiClient.request('/services/categories'),
           ApiClient.request('/services'),
-          ApiClient.request('/services/active-workers')
+          ApiClient.request('/coupons')
         ]);
 
         if (catRes.success) setCategories(catRes.data || []);
         if (srvRes.success) setFeaturedServices(srvRes.data || []);
-        if (wrkRes.success) setActiveWorkers(wrkRes.data || []);
+        if (cpnRes.success) setActiveCoupons(cpnRes.data || []);
       } catch (e) {
         console.error(e);
       } finally {
@@ -119,10 +119,17 @@ export const HomePage: React.FC = () => {
                 />
               </div>
 
-              <div className="flex items-center bg-white/20 backdrop-blur-md rounded-2xl px-4 py-3 text-xs font-bold text-yellow-300 border border-white/30 whitespace-nowrap">
-                <Tag className="w-4 h-4 mr-2 text-yellow-300 flex-shrink-0" />
-                <span>Code: <strong>WELCOME50</strong></span>
-              </div>
+              {activeCoupons.length > 0 ? (
+                <div className="flex items-center bg-white/20 backdrop-blur-md rounded-2xl px-4 py-3 text-xs font-bold text-yellow-300 border border-white/30 whitespace-nowrap">
+                  <Tag className="w-4 h-4 mr-2 text-yellow-300 flex-shrink-0" />
+                  <span>Code: <strong>{activeCoupons[0].code}</strong> ({activeCoupons[0].discountPercentage}% OFF)</span>
+                </div>
+              ) : (
+                <div className="flex items-center bg-white/20 backdrop-blur-md rounded-2xl px-4 py-3 text-xs font-bold text-yellow-300 border border-white/30 whitespace-nowrap">
+                  <Tag className="w-4 h-4 mr-2 text-yellow-300 flex-shrink-0" />
+                  <span>100% Verified Experts</span>
+                </div>
+              )}
             </div>
           </div>
 
