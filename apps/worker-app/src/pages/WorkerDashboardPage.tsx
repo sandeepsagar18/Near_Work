@@ -294,9 +294,17 @@ export const WorkerDashboardPage: React.FC = () => {
             {activeJob ? (
               <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950 border border-indigo-500/40 rounded-3xl p-6 sm:p-8 space-y-4 shadow-2xl">
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-full">
-                    {activeJob.status.replace(/_/g, ' ')}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-full">
+                      {activeJob.status.replace(/_/g, ' ')}
+                    </span>
+                    <button
+                      onClick={() => handleRejectJob(activeJob.id)}
+                      className="text-[10px] text-red-400 hover:text-red-300 font-bold bg-red-950/40 border border-red-500/20 px-2.5 py-1 rounded-full cursor-pointer"
+                    >
+                      Release Job
+                    </button>
+                  </div>
                   <span className="text-base font-black text-emerald-400">
                     Net: ₹{Math.round(activeJob.totalAmount * 0.8)}
                   </span>
