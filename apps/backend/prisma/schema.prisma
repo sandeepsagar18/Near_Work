@@ -1,12 +1,15 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "mongodb"
+  url      = env("MONGODB_URI")
 }
+
+// ----------------------------------------------------
+// ENUMS
+// ----------------------------------------------------
 
 enum UserRole {
   CUSTOMER
@@ -80,35 +83,40 @@ enum DiscountType {
   FIXED
 }
 
-model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  phone         String         @unique
-  name          String
-  passwordHash  String
-  role          UserRole       @default(CUSTOMER)
-  avatarUrl     String?
-  isActive      Boolean        @default(true)
-  refreshToken  String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+// ----------------------------------------------------
+// MODELS
+// ----------------------------------------------------
 
-  // Relationships
-  workerProfile WorkerProfile?
-  adminProfile  AdminProfile?
-  addresses     Address[]
-  bookings      Booking[]      @relation("CustomerBookings")
-  payments      Payment[]
-  reviews       Review[]       @relation("CustomerReviews")
-  notifications Notification[]
-  tickets       SupportTicket[]
-  chats         Chat[]         @relation("CustomerChats")
-  chatMessages  ChatMessage[]  @relation("SenderMessages")
+model User {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  email        String        @unique
+  phone        String        @unique
+  name         String
+  passwordHash String
+  role         UserRole      @default(CUSTOMER)
+  avatarUrl    String?
+  isActive     Boolean       @default(true)
+  refreshToken String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  workerProfile  WorkerProfile?
+  adminProfile   AdminProfile?
+  addresses      Address[]
+  bookings       Booking[]       @relation("CustomerBookings")
+  payments       Payment[]
+  reviews        Review[]        @relation("CustomerReviews")
+  notifications  Notification[]
+  tickets        SupportTicket[]
+  chats          Chat[]          @relation("CustomerChats")
+  chatMessages   ChatMessage[]   @relation("SenderMessages")
+
+  @@index([role])
 }
 
 model WorkerProfile {
-  id                 String                   @id @default(uuid())
-  userId             String                   @unique
+  id                 String                   @id @default(auto()) @map("_id") @db.ObjectId
+  userId             String                   @unique @db.ObjectId
   user               User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   status             WorkerStatus             @default(OFFLINE)
   verificationStatus WorkerVerificationStatus @default(PENDING)
@@ -130,7 +138,6 @@ model WorkerProfile {
   createdAt          DateTime                 @default(now())
   updatedAt          DateTime                 @updatedAt
 
-  // Relationships
   skills             WorkerSkill[]
   availability       WorkerAvailability[]
   bookings           Booking[]                @relation("WorkerBookings")
@@ -139,21 +146,25 @@ model WorkerProfile {
   payouts            Payout[]
   reviews            Review[]                 @relation("WorkerReviews")
   chats              Chat[]                   @relation("WorkerChats")
+
+  @@index([status])
+  @@index([verificationStatus])
+  @@index([currentLat, currentLng])
 }
 
 model AdminProfile {
-  id          String     @id @default(uuid())
-  userId      String     @unique
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String     @unique @db.ObjectId
   user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   department  String     @default("Operations")
-  permissions String     @default("ALL") // JSON or comma-delimited
+  permissions String     @default("ALL")
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   auditLogs   AuditLog[]
 }
 
 model ServiceCategory {
-  id          String        @id @default(uuid())
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
   name        String        @unique
   slug        String        @unique
   description String?
@@ -164,23 +175,22 @@ model ServiceCategory {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  services    Service[]
+  services     Service[]
   workerSkills WorkerSkill[]
 
-  @@index([isActive])
-  @@index([sortOrder])
+  @@index([isActive, sortOrder])
 }
 
 model Service {
-  id              String          @id @default(uuid())
-  categoryId      String
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  categoryId      String          @db.ObjectId
   category        ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   name            String
   slug            String          @unique
   description     String
   basePrice       Float
   durationMinutes Int             @default(60)
-  inclusions      String          // JSON array string of included items
+  inclusions      String          // JSON array string
   icon            String?
   imageUrl        String?
   isActive        Boolean         @default(true)
@@ -194,10 +204,10 @@ model Service {
 }
 
 model Address {
-  id          String    @id @default(uuid())
-  userId      String
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String    @db.ObjectId
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  label       String    // Home, Work, Other
+  label       String
   addressLine String
   landmark    String?
   city        String
@@ -216,19 +226,19 @@ model Address {
 }
 
 model Booking {
-  id                  String               @id @default(uuid())
+  id                  String               @id @default(auto()) @map("_id") @db.ObjectId
   bookingNumber       String               @unique
-  customerId          String
+  customerId          String               @db.ObjectId
   customer            User                 @relation("CustomerBookings", fields: [customerId], references: [id])
-  workerId            String?
+  workerId            String?              @db.ObjectId
   worker              WorkerProfile?       @relation("WorkerBookings", fields: [workerId], references: [id])
-  serviceId           String
+  serviceId           String               @db.ObjectId
   service             Service              @relation(fields: [serviceId], references: [id])
-  addressId           String
+  addressId           String               @db.ObjectId
   address             Address              @relation(fields: [addressId], references: [id])
   status              BookingStatus        @default(CREATED)
   scheduledDate       String               // YYYY-MM-DD
-  scheduledTimeSlot   String               // e.g., "10:00 AM"
+  scheduledTimeSlot   String               // e.g. "10:00 AM"
   basePrice           Float
   visitCharge         Float                @default(50.0)
   taxAmount           Float                @default(0.0)
@@ -237,7 +247,7 @@ model Booking {
   extraChargeReason   String?
   extraChargeApproved Boolean?
   totalAmount         Float
-  otp                 String               // 4-digit service start verification OTP
+  otp                 String
   instructions        String?
   problemPhotos       String?              // JSON array
   beforePhotos        String?              // JSON array
@@ -254,7 +264,6 @@ model Booking {
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
-  // Relationships
   statusHistory       BookingStatusHistory[]
   payment             Payment?
   refund              Refund?
@@ -268,23 +277,26 @@ model Booking {
   @@index([workerId])
   @@index([status])
   @@index([createdAt])
+  @@index([scheduledDate])
 }
 
 model BookingStatusHistory {
-  id        String        @id @default(uuid())
-  bookingId String
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  bookingId String        @db.ObjectId
   booking   Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   status    BookingStatus
   note      String?
-  changedBy String?       // userId or system
+  changedBy String?
   createdAt DateTime      @default(now())
+
+  @@index([bookingId])
 }
 
 model Payment {
-  id                String        @id @default(uuid())
-  bookingId         String        @unique
+  id                String        @id @default(auto()) @map("_id") @db.ObjectId
+  bookingId         String        @unique @db.ObjectId
   booking           Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  userId            String
+  userId            String        @db.ObjectId
   user              User          @relation(fields: [userId], references: [id])
   amount            Float
   currency          String        @default("INR")
@@ -292,18 +304,21 @@ model Payment {
   razorpayOrderId   String?       @unique
   razorpayPaymentId String?       @unique
   razorpaySignature String?
-  paymentMethod     String?       // UPI, Card, NetBanking, Wallet
+  paymentMethod     String?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
   refund            Refund?
+
+  @@index([userId])
+  @@index([status])
 }
 
 model Refund {
-  id               String        @id @default(uuid())
-  paymentId        String        @unique
+  id               String        @id @default(auto()) @map("_id") @db.ObjectId
+  paymentId        String        @unique @db.ObjectId
   payment          Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  bookingId        String        @unique
+  bookingId        String        @unique @db.ObjectId
   booking          Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   amount           Float
   status           PaymentStatus @default(REFUND_PENDING)
@@ -314,8 +329,8 @@ model Refund {
 }
 
 model WorkerLocation {
-  id        String        @id @default(uuid())
-  workerId  String
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  workerId  String        @db.ObjectId
   worker    WorkerProfile @relation(fields: [workerId], references: [id], onDelete: Cascade)
   latitude  Float
   longitude Float
@@ -323,25 +338,28 @@ model WorkerLocation {
   speed     Float?
   accuracy  Float?
   updatedAt DateTime      @default(now())
+
+  @@index([workerId])
+  @@index([updatedAt])
 }
 
 model WorkerAvailability {
-  id        String        @id @default(uuid())
-  workerId  String
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  workerId  String        @db.ObjectId
   worker    WorkerProfile @relation(fields: [workerId], references: [id], onDelete: Cascade)
-  dayOfWeek Int           // 0 = Sunday, 1 = Monday, ... 6 = Saturday
-  startTime String        // "09:00"
-  endTime   String        // "18:00"
+  dayOfWeek Int
+  startTime String
+  endTime   String
   isOff     Boolean       @default(false)
 
   @@unique([workerId, dayOfWeek])
 }
 
 model WorkerSkill {
-  id              String          @id @default(uuid())
-  workerId        String
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  workerId        String          @db.ObjectId
   worker          WorkerProfile   @relation(fields: [workerId], references: [id], onDelete: Cascade)
-  categoryId      String
+  categoryId      String          @db.ObjectId
   category        ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   experienceYears Int             @default(1)
 
@@ -349,37 +367,42 @@ model WorkerSkill {
 }
 
 model Review {
-  id         String        @id @default(uuid())
-  bookingId  String        @unique
+  id         String        @id @default(auto()) @map("_id") @db.ObjectId
+  bookingId  String        @unique @db.ObjectId
   booking    Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  customerId String
+  customerId String        @db.ObjectId
   customer   User          @relation("CustomerReviews", fields: [customerId], references: [id])
-  workerId   String
+  workerId   String        @db.ObjectId
   worker     WorkerProfile @relation("WorkerReviews", fields: [workerId], references: [id])
-  rating     Int           // 1 to 5
+  rating     Int
   review     String?
   createdAt  DateTime      @default(now())
+
+  @@index([workerId])
+  @@index([customerId])
 }
 
 model Notification {
-  id        String   @id @default(uuid())
-  userId    String
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title     String
   message   String
-  type      String   // e.g. BOOKING, PAYMENT, SYSTEM, CHAT
+  type      String
   isRead    Boolean  @default(false)
-  data      String?  // JSON string
+  data      String?
   createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
 }
 
 model Chat {
-  id         String        @id @default(uuid())
-  bookingId  String        @unique
+  id         String        @id @default(auto()) @map("_id") @db.ObjectId
+  bookingId  String        @unique @db.ObjectId
   booking    Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  customerId String
+  customerId String        @db.ObjectId
   customer   User          @relation("CustomerChats", fields: [customerId], references: [id])
-  workerId   String
+  workerId   String        @db.ObjectId
   worker     WorkerProfile @relation("WorkerChats", fields: [workerId], references: [id])
   isActive   Boolean       @default(true)
   createdAt  DateTime      @default(now())
@@ -389,46 +412,52 @@ model Chat {
 }
 
 model ChatMessage {
-  id        String   @id @default(uuid())
-  chatId    String
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  chatId    String   @db.ObjectId
   chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  senderId  String
+  senderId  String   @db.ObjectId
   sender    User     @relation("SenderMessages", fields: [senderId], references: [id])
   message   String
   imageUrl  String?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([chatId, createdAt])
 }
 
 model Earning {
-  id                 String        @id @default(uuid())
-  workerId           String
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+  workerId           String        @db.ObjectId
   worker             WorkerProfile @relation(fields: [workerId], references: [id], onDelete: Cascade)
-  bookingId          String        @unique
+  bookingId          String        @unique @db.ObjectId
   booking            Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   grossAmount        Float
   platformCommission Float
   netWorkerEarning   Float
   status             String        @default("SETTLED")
   createdAt          DateTime      @default(now())
+
+  @@index([workerId])
 }
 
 model Payout {
-  id            String        @id @default(uuid())
-  payoutNumber  String        @unique
-  workerId      String
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  payoutNumber  String       @unique
+  workerId      String       @db.ObjectId
   worker        WorkerProfile @relation(fields: [workerId], references: [id], onDelete: Cascade)
   amount        Float
-  status        PayoutStatus  @default(PENDING)
+  status        PayoutStatus @default(PENDING)
   bankAccount   String
   bankIfsc      String
   referenceId   String?
   processedAt   DateTime?
-  createdAt     DateTime      @default(now())
+  createdAt     DateTime     @default(now())
+
+  @@index([workerId])
 }
 
 model Coupon {
-  id             String       @id @default(uuid())
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
   code           String       @unique
   discountType   DiscountType @default(PERCENTAGE)
   discountValue  Float
@@ -439,15 +468,17 @@ model Coupon {
   expiresAt      DateTime?
   isActive       Boolean      @default(true)
   createdAt      DateTime     @default(now())
+
+  @@index([isActive])
 }
 
 model Invoice {
-  id            String   @id @default(uuid())
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
   invoiceNumber String   @unique
-  bookingId     String   @unique
+  bookingId     String   @unique @db.ObjectId
   booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  customerId    String
-  workerId      String?
+  customerId    String   @db.ObjectId
+  workerId      String?  @db.ObjectId
   subtotal      Float
   visitCharge   Float
   tax           Float
@@ -459,30 +490,36 @@ model Invoice {
 }
 
 model SupportTicket {
-  id          String         @id @default(uuid())
-  ticketNumber String        @unique
-  userId      String
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bookingId   String?
-  booking     Booking?       @relation(fields: [bookingId], references: [id])
-  category    String         // PAYMENT, WORKER, SERVICE, CANCELLATION, REFUND, OTHER
-  subject     String
-  description String
-  status      TicketStatus   @default(OPEN)
-  priority    TicketPriority @default(MEDIUM)
-  adminNotes  String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  ticketNumber String         @unique
+  userId       String         @db.ObjectId
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookingId    String?        @db.ObjectId
+  booking      Booking?       @relation(fields: [bookingId], references: [id])
+  category     String
+  subject      String
+  description  String
+  status       TicketStatus   @default(OPEN)
+  priority     TicketPriority @default(MEDIUM)
+  adminNotes   String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([status])
 }
 
 model AuditLog {
-  id        String       @id @default(uuid())
-  adminId   String
+  id        String       @id @default(auto()) @map("_id") @db.ObjectId
+  adminId   String       @db.ObjectId
   admin     AdminProfile @relation(fields: [adminId], references: [id], onDelete: Cascade)
   action    String
   entity    String
   entityId  String?
-  details   String?      // JSON string
+  details   String?
   ipAddress String?
   createdAt DateTime     @default(now())
+
+  @@index([adminId])
+  @@index([entity, entityId])
 }

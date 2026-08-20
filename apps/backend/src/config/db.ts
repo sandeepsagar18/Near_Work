@@ -1,30 +1,19 @@
+import dns from 'dns';
 import { PrismaClient } from '@prisma/client';
-import { PrismaLibSql } from '@prisma/adapter-libsql';
-import { createClient } from '@libsql/client/web';
+
+// Configure Node.js DNS to use Google DNS for reliable MongoDB Atlas SRV resolution
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+  // fallback to system resolver
+}
 
 declare global {
   var prisma: PrismaClient | undefined;
 }
 
 function createPrismaClient(): PrismaClient {
-  const tursoUrl = process.env.TURSO_DATABASE_URL;
-  const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
-
-  if (tursoUrl && tursoAuthToken) {
-    try {
-      console.log(`🌐 Connecting NearWork to Turso Cloud Database: ${tursoUrl}`);
-      const adapter = new PrismaLibSql({
-        url: tursoUrl,
-        authToken: tursoAuthToken
-      });
-      return new PrismaClient({ adapter } as any);
-    } catch (err) {
-      console.error('⚠️ Failed to initialize Turso adapter, falling back to standard client:', err);
-      return new PrismaClient();
-    }
-  }
-
-  console.log('📁 Connecting NearWork to Local SQLite Database');
+  console.log('🍃 Connecting NearWork to MongoDB Atlas (Jokecluster)...');
   return new PrismaClient();
 }
 
