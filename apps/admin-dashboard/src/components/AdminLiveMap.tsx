@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
+import { Layers } from 'lucide-react';
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -8,6 +9,31 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
+
+const TILE_STYLES = [
+  {
+    name: 'Google Maps Clean',
+    url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    attribution: '&copy; Google Maps',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+  },
+  {
+    name: 'Google Satellite Hybrid',
+    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    attribution: '&copy; Google Maps Satellite',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+  },
+  {
+    name: 'Carto Voyager Clean',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; CartoDB &copy; OpenStreetMap'
+  },
+  {
+    name: 'Dark Obsidian',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; CartoDB'
+  }
+];
 
 const workerOnlineIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
@@ -33,11 +59,23 @@ interface AdminLiveMapProps {
 }
 
 export const AdminLiveMap: React.FC<AdminLiveMapProps> = ({ workers, bookings }) => {
-  // Center on Gorakhpur (26.7606, 83.3732)
   const defaultCenter: [number, number] = [26.7606, 83.3732];
+  const [tileStyleIndex, setTileStyleIndex] = useState(0);
+  const currentStyle = TILE_STYLES[tileStyleIndex];
 
   return (
     <div className="w-full h-[540px] rounded-2xl overflow-hidden border border-slate-800 shadow-xl relative">
+      {/* Floating Layer Switcher */}
+      <div className="absolute top-3 right-3 z-[400]">
+        <button
+          onClick={() => setTileStyleIndex((prev) => (prev + 1) % TILE_STYLES.length)}
+          className="bg-slate-900/95 hover:bg-slate-800 border border-slate-700 text-slate-200 px-3.5 py-1.5 rounded-xl shadow-lg backdrop-blur-md text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer"
+        >
+          <Layers className="w-3.5 h-3.5 text-indigo-400" />
+          <span>{currentStyle.name}</span>
+        </button>
+      </div>
+
       <MapContainer
         center={defaultCenter}
         zoom={13}
@@ -45,8 +83,9 @@ export const AdminLiveMap: React.FC<AdminLiveMapProps> = ({ workers, bookings })
         className="w-full h-full"
       >
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          key={currentStyle.url}
+          attribution={currentStyle.attribution}
+          url={currentStyle.url}
         />
 
         {/* On-Duty Workers Markers */}
