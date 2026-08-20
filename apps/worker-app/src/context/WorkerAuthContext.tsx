@@ -44,14 +44,27 @@ const WorkerAuthContext = createContext<WorkerAuthContextType | undefined>(undef
 export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [worker, setWorker] = useState<WorkerUser | null>(null);
   const [activeJobAlert, setActiveJobAlert] = useState<any | null>(null);
-  const [declinedCounts, setDeclinedCounts] = useState<Record<string, number>>({});
+  const [declinedCounts, setDeclinedCounts] = useState<Record<string, number>>(() => {
+    try {
+      const saved = sessionStorage.getItem('nw_declined_counts');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const recordDecline = (bookingId: string) => {
-    setDeclinedCounts((prev) => ({
-      ...prev,
-      [bookingId]: (prev[bookingId] || 0) + 1
-    }));
+    setDeclinedCounts((prev) => {
+      const updated = {
+        ...prev,
+        [bookingId]: (prev[bookingId] || 0) + 1
+      };
+      try {
+        sessionStorage.setItem('nw_declined_counts', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     setActiveJobAlert(null);
   };
 

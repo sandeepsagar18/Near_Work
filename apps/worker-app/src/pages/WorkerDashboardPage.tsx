@@ -127,8 +127,20 @@ export const WorkerDashboardPage: React.FC = () => {
     return null;
   }
 
+  const getDeclineCount = (bookingId: string) => {
+    try {
+      const saved = sessionStorage.getItem('nw_declined_counts');
+      const map = saved ? JSON.parse(saved) : {};
+      return map[bookingId] || 0;
+    } catch {
+      return 0;
+    }
+  };
+
   const pendingAssignmentJob = jobs.find(
-    (j) => j.status === 'WORKER_ASSIGNED' || j.status === 'SEARCHING_WORKER'
+    (j) =>
+      (j.status === 'WORKER_ASSIGNED' || j.status === 'SEARCHING_WORKER') &&
+      getDeclineCount(j.id) < 2
   );
   const activeJob = jobs.find((j) =>
     ['WORKER_ACCEPTED', 'WORKER_EN_ROUTE', 'WORKER_ARRIVED', 'SERVICE_STARTED'].includes(j.status)

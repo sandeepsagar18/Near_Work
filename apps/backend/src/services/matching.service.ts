@@ -157,7 +157,7 @@ export class MatchingService {
 
     // Filter out workers who have declined this booking 2 times or more
     const availableCandidates = rankedWorkers.filter(
-      (w) => (declineCountMap[w.workerId] || 0) < 2
+      (w) => (declineCountMap[w.workerId] || 0) < 2 && (declineCountMap[w.userId] || 0) < 2
     );
 
     if (availableCandidates.length === 0) {
