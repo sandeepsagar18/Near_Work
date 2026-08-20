@@ -83,22 +83,22 @@ export class WorkerController {
         return;
       }
 
-      await prisma.$transaction([
-        prisma.workerProfile.update({
-          where: { id: workerId },
-          data: { currentLat: latitude, currentLng: longitude }
-        }),
-        prisma.workerLocation.create({
-          data: {
-            workerId,
-            latitude,
-            longitude,
-            heading: heading || 0,
-            speed: speed || 0,
-            accuracy: accuracy || 5
-          }
-        })
-      ]);
+      await prisma.workerProfile.update({
+        where: { id: workerId },
+        data: { currentLat: latitude, currentLng: longitude }
+      });
+
+      // Asynchronously insert location history point
+      prisma.workerLocation.create({
+        data: {
+          workerId,
+          latitude,
+          longitude,
+          heading: heading || 0,
+          speed: speed || 0,
+          accuracy: accuracy || 5
+        }
+      }).catch(() => {});
 
       // Broadcast to active bookings and admin room
       try {

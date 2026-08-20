@@ -88,7 +88,8 @@ export class CustomerController {
           invoice: true,
           review: true
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        take: 50
       });
 
       res.status(HTTP_STATUS.OK).json({ success: true, data: bookings });

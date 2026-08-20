@@ -166,6 +166,9 @@ model ServiceCategory {
 
   services    Service[]
   workerSkills WorkerSkill[]
+
+  @@index([isActive])
+  @@index([sortOrder])
 }
 
 model Service {
@@ -185,6 +188,9 @@ model Service {
   updatedAt       DateTime        @updatedAt
 
   bookings        Booking[]
+
+  @@index([categoryId])
+  @@index([isActive])
 }
 
 model Address {
@@ -204,6 +210,9 @@ model Address {
   updatedAt   DateTime  @updatedAt
 
   bookings    Booking[]
+
+  @@index([userId])
+  @@index([isDefault])
 }
 
 model Booking {
@@ -254,6 +263,11 @@ model Booking {
   earning             Earning?
   invoice             Invoice?
   supportTickets      SupportTicket[]
+
+  @@index([customerId])
+  @@index([workerId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model BookingStatusHistory {

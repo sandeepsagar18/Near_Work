@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { HTTP_STATUS } from '@nearwork/config';
 import { prisma } from '../config/db';
+import { appCache, CACHE_TTL } from '../utils/cache';
 
 export class ServiceController {
   /**
@@ -8,12 +9,14 @@ export class ServiceController {
    */
   static async getCategories(req: Request, res: Response, next: NextFunction) {
     try {
-      const categories = await prisma.serviceCategory.findMany({
-        where: { isActive: true },
-        include: {
-          services: { where: { isActive: true } }
-        },
-        orderBy: { sortOrder: 'asc' }
+      const categories = await appCache.getOrSet('all_categories', CACHE_TTL.CATEGORIES, async () => {
+        return prisma.serviceCategory.findMany({
+          where: { isActive: true },
+          include: {
+            services: { where: { isActive: true } }
+          },
+          orderBy: { sortOrder: 'asc' }
+        });
       });
       res.status(HTTP_STATUS.OK).json({ success: true, data: categories });
     } catch (error) {
@@ -41,11 +44,18 @@ export class ServiceController {
         ];
       }
 
-      const services = await prisma.service.findMany({
-        where,
-        include: { category: true },
-        orderBy: { basePrice: 'asc' }
-      });
+      const cacheKey = !search ? `services_${categorySlug || 'all'}` : null;
+
+      const fetchServices = () =>
+        prisma.service.findMany({
+          where,
+          include: { category: true },
+          orderBy: { basePrice: 'asc' }
+        });
+
+      const services = cacheKey
+        ? await appCache.getOrSet(cacheKey, CACHE_TTL.SERVICES, fetchServices)
+        : await fetchServices();
 
       res.status(HTTP_STATUS.OK).json({ success: true, data: services });
     } catch (error) {
