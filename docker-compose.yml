@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nearwork_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: nearwork_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: nearwork_redis
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: nearwork_backend
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://postgres:postgrespassword@postgres:5432/nearwork_db?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: nearwork_jwt_super_secret_key_prod_2026
+      JWT_REFRESH_SECRET: nearwork_jwt_refresh_super_secret_key_prod_2026
+      RAZORPAY_KEY_ID: rzp_test_NearWorkKey
+      RAZORPAY_KEY_SECRET: rzp_test_NearWorkSecret
+    ports:
+      - '5000:5000'
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Device Locator AI - Interactive Live Simulator</title>
+  <!-- Leaflet CSS for Map Engine -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header Navigation -->
+    <header class="glass-header">
+      <div class="brand">
+        <div class="status-pulse"></div>
+        <h1>Device Locator AI <span>Live Simulator</span></h1>
+      </div>
+      <div class="header-badges">
+        <div class="badge" id="turso-status-badge">
+          <span class="dot green"></span> Turso Edge DB: Live
+        </div>
+        <div class="badge" id="mode-badge">
+          <span class="dot cyan"></span> Mode: Real-Time Online
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-viewport">
+      <!-- Left Panel: Interactive Simulator & Control Center -->
+      <aside class="control-panel glass-card">
+        <h2>Device Telemetry Control</h2>
+        
+        <!-- Live Metrics HUD Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="label">Speed</span>
+            <span class="value" id="hud-speed">45.2 <small>km/h</small></span>
+          </div>
+          <div class="metric-card">
+            <span class="label">Altitude</span>
+            <span class="value" id="hud-alt">128 <small>m</small></span>
+          </div>
+          <div class="metric-card">
+            <span class="label">Accuracy</span>
+            <span class="value" id="hud-acc">±2.5 <small>m</small></span>
+          </div>
+          <div class="metric-card">
+            <span class="label">Battery</span>
+            <span class="value" id="hud-bat">94%</span>
+          </div>
+        </div>
+
+        <!-- Connectivity Mode Switcher -->
+        <div class="section">
+          <h3>Connectivity Engine Mode</h3>
+          <div class="mode-selector">
+            <button class="mode-btn active" id="btn-mode-online" onclick="setMode('online')">
+              🌐 Online IP
+            </button>
+            <button class="mode-btn" id="btn-mode-ble" onclick="setMode('bleMeshRelay')">
+              📡 BLE Mesh Relay
+            </button>
+            <button class="mode-btn" id="btn-mode-sms" onclick="setMode('smsStream')">
+              💬 SMS Stream
+            </button>
+          </div>
+        </div>
+
+        <!-- Real-Time Motion Simulation Controls -->
+        <div class="section">
+          <h3>Simulated Device Controls</h3>
+          <div class="slider-group">
+            <label>Drive Speed: <span id="speed-val">45 km/h</span></label>
+            <input type="range" id="speed-slider" min="0" max="140" value="45" oninput="updateSpeed(this.value)">
+          </div>
+
+          <div class="action-buttons">
+            <button class="btn btn-primary" onclick="toggleTracking()" id="btn-toggle-tracking">
+              ⏸️ Pause Motion
+            </button>
+            <button class="btn btn-secondary" onclick="triggerTursoSync()">
+              ⚡ Sync to Turso Cloud
+            </button>
+          </div>
+        </div>
+
+        <!-- Real-Time Offline Radar / SMS Logs -->
+        <div class="section">
+          <h3>Real-Time Edge Logs</h3>
+          <div class="log-box" id="edge-log-container">
+            <div class="log-item">
+              <span class="time">14:09:12</span>
+              <span class="text">[Turso] Offline SQLite record saved (id: #10928)</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center / Right Viewport: Live Interactive Map -->
+      <section class="map-container glass-card">
+        <div id="leaflet-map"></div>
+
+        <!-- Floating Map Overlay Controls -->
+        <div class="map-overlay-controls">
+          <button class="overlay-btn" onclick="recenterMap()">🎯 Recenter Device</button>
+          <button class="overlay-btn" onclick="toggleTileStyle()" id="style-toggle-btn">🗺️ Style: Dark Obsidian</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Navigation Bar for Screen Tabs -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" onclick="switchTab('map')">🗺️ Live Map</button>
+      <button class="nav-item" onclick="switchTab('radar')">📡 BLE Sonar Radar</button>
+      <button class="nav-item" onclick="switchTab('timeline')">📜 History Timeline</button>
+      <button class="nav-item" onclick="switchTab('turso')">💾 Turso Edge DB</button>
+    </nav>
+  </div>
+
+  <!-- Leaflet JS Map Library -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

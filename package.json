@@ -1,0 +1,26 @@
+{
+  "name": "nearwork-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:customer\" \"npm run dev:worker\" \"npm run dev:admin\"",
+    "dev:backend": "npm --workspace=@nearwork/backend run dev",
+    "dev:customer": "npm --workspace=@nearwork/customer-app run dev",
+    "dev:worker": "npm --workspace=@nearwork/worker-app run dev",
+    "dev:admin": "npm --workspace=@nearwork/admin-dashboard run dev",
+    "test": "npm run test --workspaces --if-present",
+    "prisma:generate": "npm --workspace=@nearwork/backend run prisma:generate",
+    "prisma:migrate": "npm --workspace=@nearwork/backend run prisma:migrate",
+    "prisma:seed": "npm --workspace=@nearwork/backend run prisma:seed"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  }
+}
