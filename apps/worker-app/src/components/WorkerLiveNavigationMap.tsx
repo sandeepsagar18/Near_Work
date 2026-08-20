@@ -11,27 +11,46 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Device Locator Tile Engines
+// Google Maps & High-Definition Clean Navigation Tile Styles
 const TILE_STYLES = [
-  { name: 'Dark Obsidian', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attribution: '&copy; CartoDB &copy; OpenStreetMap' },
-  { name: 'Carto Voyager', url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attribution: '&copy; CartoDB' },
-  { name: 'OpenStreetMap', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '&copy; OpenStreetMap contributors' }
+  {
+    name: 'Google Maps Clean',
+    url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    attribution: '&copy; Google Maps',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+  },
+  {
+    name: 'Google Satellite Hybrid',
+    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    attribution: '&copy; Google Maps Satellite',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+  },
+  {
+    name: 'Carto Voyager Clean',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; CartoDB &copy; OpenStreetMap'
+  },
+  {
+    name: 'Dark Obsidian',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; CartoDB'
+  }
 ];
 
 // Customer Destination Icon
 const customerHomeIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [28, 45],
-  iconAnchor: [14, 45],
-  popupAnchor: [1, -38],
-  shadowSize: [45, 45]
+  iconSize: [30, 48],
+  iconAnchor: [15, 48],
+  popupAnchor: [1, -40],
+  shadowSize: [48, 48]
 });
 
-// Device Locator Futuristic Pulsing Radar Marker Icon with Direction Arrow
-const createDeviceLocatorRadarIcon = (heading: number = 0) => {
+// Google Maps Style Navigation Arrow with Glowing Pulsing Core
+const createGoogleNavigationIcon = (heading: number = 0) => {
   return L.divIcon({
-    className: 'device-locator-radar-icon',
+    className: 'google-nav-marker-icon',
     html: `
       <div style="
         position: relative;
@@ -41,7 +60,7 @@ const createDeviceLocatorRadarIcon = (heading: number = 0) => {
         align-items: center;
         justify-content: center;
       ">
-        <!-- Pulsing Radar Wave -->
+        <!-- Pulsing Wave -->
         <div style="
           position: absolute;
           width: 48px;
@@ -53,28 +72,28 @@ const createDeviceLocatorRadarIcon = (heading: number = 0) => {
           animation: lightPulse 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
         "></div>
 
-        <!-- Center Glowing Core & Compass Bearing -->
+        <!-- Google Navigation Arrow -->
         <div style="
           position: relative;
           z-index: 10;
-          width: 22px;
-          height: 22px;
+          width: 28px;
+          height: 28px;
           background: #10b981;
-          border: 2.5px solid #ffffff;
+          border: 3px solid #ffffff;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 0 12px #10b981;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.3);
           transform: rotate(${heading}deg);
           transition: transform 0.4s ease;
         ">
           <div style="
             width: 0;
             height: 0;
-            border-left: 4px solid transparent;
-            border-right: 4px solid transparent;
-            border-bottom: 7px solid #0f172a;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 9px solid #ffffff;
             margin-top: -2px;
           "></div>
         </div>
@@ -99,7 +118,6 @@ function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: num
   return R * c;
 }
 
-// Controller to Pan & Adjust Map
 const MapController: React.FC<{
   center: [number, number];
   recenterTrigger: number;
@@ -128,7 +146,7 @@ export const WorkerLiveNavigationMap: React.FC<WorkerLiveNavigationMapProps> = (
   isEnRoute = true,
   onLocationUpdate
 }) => {
-  const [workerPos, setWorkerPos] = useState<[number, number]>([customerLat - 0.015, customerLng - 0.015]);
+  const [workerPos, setWorkerPos] = useState<[number, number]>([customerLat - 0.012, customerLng - 0.015]);
   const [realSpeed, setRealSpeed] = useState<number>(35);
   const [realAltitude, setRealAltitude] = useState<number>(128);
   const [realAccuracy, setRealAccuracy] = useState<number>(2.5);
@@ -138,7 +156,6 @@ export const WorkerLiveNavigationMap: React.FC<WorkerLiveNavigationMapProps> = (
   const [recenterTrigger, setRecenterTrigger] = useState<number>(0);
   const watchIdRef = useRef<number | null>(null);
 
-  // Watch real device GPS hardware continuously with maximum accuracy
   useEffect(() => {
     if ('geolocation' in navigator) {
       watchIdRef.current = navigator.geolocation.watchPosition(
@@ -174,7 +191,7 @@ export const WorkerLiveNavigationMap: React.FC<WorkerLiveNavigationMapProps> = (
     };
   }, [onLocationUpdate]);
 
-  const radarIcon = useMemo(() => createDeviceLocatorRadarIcon(realHeading), [realHeading]);
+  const navIcon = useMemo(() => createGoogleNavigationIcon(realHeading), [realHeading]);
 
   const rawDistanceKm = calculateDistanceKm(workerPos[0], workerPos[1], customerLat, customerLng);
   const isAtPremises = rawDistanceKm <= 0.15;
@@ -197,21 +214,18 @@ export const WorkerLiveNavigationMap: React.FC<WorkerLiveNavigationMapProps> = (
   const currentStyle = TILE_STYLES[tileStyleIndex];
 
   return (
-    <div className="w-full rounded-3xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Device Locator Header */}
-      <div className="bg-slate-900/90 backdrop-blur-md px-5 py-3.5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+    <div className="w-full rounded-3xl overflow-hidden shadow-2xl border border-slate-700 bg-slate-900 text-slate-100 flex flex-col font-sans">
+      {/* Google Maps Clean Header */}
+      <div className="bg-slate-900 px-4 sm:px-6 py-3.5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center space-x-3">
-          <div className="relative flex h-3.5 w-3.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 shadow-[0_0_12px_#10b981]"></span>
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <Navigation className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-extrabold text-sm tracking-wide text-white flex items-center gap-2">
-              <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-                Device Locator AI
-              </span>
-              <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-                Turn-by-Turn GPS Radar
+            <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
+              <span>Google Maps Navigation Engine</span>
+              <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                Live 3D Streets
               </span>
             </h3>
           </div>
@@ -221,14 +235,14 @@ export const WorkerLiveNavigationMap: React.FC<WorkerLiveNavigationMapProps> = (
         <div className="flex items-center space-x-2 text-xs">
           <button
             onClick={openGoogleMapsDirections}
-            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-3.5 py-1.5 rounded-full font-black flex items-center space-x-1.5 shadow-lg shadow-emerald-500/20 transition cursor-pointer"
+            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-3.5 py-1.5 rounded-full font-black flex items-center space-x-1.5 shadow-md shadow-emerald-500/20 transition cursor-pointer"
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            <span className="text-[11px]">Google Maps Navigation</span>
+            <span className="text-[11px]">Open in Google Maps App</span>
           </button>
           <button
             onClick={handleToggleStyle}
-            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-full flex items-center space-x-1.5 font-medium transition cursor-pointer"
+            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-full flex items-center space-x-1.5 font-medium transition cursor-pointer"
           >
             <Layers className="w-3.5 h-3.5 text-emerald-400" />
             <span className="text-[11px]">{currentStyle.name}</span>
@@ -237,7 +251,7 @@ export const WorkerLiveNavigationMap: React.FC<WorkerLiveNavigationMapProps> = (
       </div>
 
       {/* Main Map Engine */}
-      <div className="relative w-full h-80 sm:h-96 md:h-[420px] bg-slate-900">
+      <div className="relative w-full h-80 sm:h-96 md:h-[440px] bg-slate-100">
         <MapContainer
           center={workerPos}
           zoom={16}
@@ -251,12 +265,12 @@ export const WorkerLiveNavigationMap: React.FC<WorkerLiveNavigationMapProps> = (
             url={currentStyle.url}
           />
 
-          {/* Customer House Marker */}
+          {/* Customer Destination Marker */}
           <Marker position={[customerLat, customerLng]} icon={customerHomeIcon}>
             <Popup>
               <div className="p-1 text-slate-900 text-xs">
-                <p className="font-bold text-sky-600">🏠 Customer Destination</p>
-                <p className="text-[10px] text-slate-600">{customerAddress}</p>
+                <p className="font-bold text-red-600">📍 Customer Service Destination</p>
+                <p className="text-[10px] text-slate-600 mt-0.5">{customerAddress}</p>
               </div>
             </Popup>
           </Marker>
@@ -275,18 +289,17 @@ export const WorkerLiveNavigationMap: React.FC<WorkerLiveNavigationMapProps> = (
             />
           )}
 
-          {/* Direct Line to Customer */}
+          {/* Google Navigation Clean Route Line to Customer */}
           <Polyline
             positions={[workerPos, [customerLat, customerLng]]}
             pathOptions={{
-              color: isAtPremises ? '#10b981' : '#38bdf8',
-              weight: 3,
-              opacity: 0.6,
-              dashArray: '4, 6'
+              color: isAtPremises ? '#10b981' : '#2563eb',
+              weight: 5,
+              opacity: 0.85
             }}
           />
 
-          {/* High-Accuracy Device Locator GPS Radius */}
+          {/* GPS Accuracy Circle */}
           <Circle
             center={workerPos}
             radius={Math.min(100, Math.max(10, realAccuracy * 1.5))}
@@ -298,11 +311,11 @@ export const WorkerLiveNavigationMap: React.FC<WorkerLiveNavigationMapProps> = (
             }}
           />
 
-          {/* Worker Location Pulsing Radar Icon */}
-          <Marker position={workerPos} icon={radarIcon}>
+          {/* Worker Navigation Arrow Marker */}
+          <Marker position={workerPos} icon={navIcon}>
             <Popup>
               <div className="p-1.5 text-slate-900 text-xs">
-                <p className="font-bold text-emerald-600">⚡ You (Service Partner)</p>
+                <p className="font-bold text-emerald-600">⚡ Your Live Vehicle Position</p>
                 <p className="text-[10px] text-slate-600">
                   Speed: {realSpeed} km/h • Accuracy: ±{realAccuracy.toFixed(1)}m
                 </p>
@@ -317,29 +330,29 @@ export const WorkerLiveNavigationMap: React.FC<WorkerLiveNavigationMapProps> = (
         <div className="absolute top-4 right-4 z-[400] flex flex-col gap-2">
           <button
             onClick={handleRecenter}
-            className="bg-slate-900/90 hover:bg-slate-800 text-emerald-400 border border-emerald-500/40 px-3 py-2 rounded-2xl shadow-xl backdrop-blur-md text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer"
+            className="bg-white/95 hover:bg-white text-slate-900 border border-gray-200 px-3.5 py-2 rounded-2xl shadow-xl backdrop-blur-md text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer"
           >
-            <Compass className="w-4 h-4 text-emerald-400" />
-            <span>🎯 Recenter My GPS</span>
+            <Compass className="w-4 h-4 text-emerald-600" />
+            <span>🎯 Recenter GPS</span>
           </button>
         </div>
 
-        {/* Distance & ETA Floating Badge */}
-        <div className="absolute bottom-4 left-4 right-4 sm:right-auto z-[400] bg-slate-950/90 backdrop-blur-md border border-slate-800 p-3.5 rounded-2xl shadow-2xl flex items-center justify-between sm:justify-start gap-4">
+        {/* Distance & ETA Floating Clean Card (Google Maps Style) */}
+        <div className="absolute bottom-4 left-4 right-4 sm:right-auto z-[400] bg-white/95 backdrop-blur-md border border-gray-200 p-3.5 rounded-2xl shadow-2xl flex items-center justify-between sm:justify-start gap-4 text-slate-900">
           <div>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">
               Trip ETA
             </span>
-            <div className="text-xl font-black text-white">
+            <div className="text-xl font-black text-slate-900">
               {isAtPremises ? 'Arrived at Customer Door' : `${etaMins} mins away`}
             </div>
           </div>
-          <div className="h-8 w-px bg-slate-800"></div>
+          <div className="h-8 w-px bg-slate-200"></div>
           <div>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">
               Remaining Distance
             </span>
-            <div className="text-base font-black text-emerald-400">
+            <div className="text-base font-black text-emerald-600">
               {isAtPremises ? 'Doorstep (0.0 km)' : `${distanceKm.toFixed(2)} km`}
             </div>
           </div>
@@ -347,9 +360,9 @@ export const WorkerLiveNavigationMap: React.FC<WorkerLiveNavigationMapProps> = (
       </div>
 
       {/* Real-time Hardware Telemetry HUD */}
-      <div className="bg-slate-900/95 border-t border-slate-800 p-4 sm:p-5">
+      <div className="bg-slate-950 border-t border-slate-800 p-4 sm:p-5">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-3 space-y-1">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 space-y-1">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
               <Gauge className="w-3.5 h-3.5 text-emerald-400" />
               <span>Speed</span>
@@ -359,7 +372,7 @@ export const WorkerLiveNavigationMap: React.FC<WorkerLiveNavigationMapProps> = (
             </div>
           </div>
 
-          <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-3 space-y-1">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 space-y-1">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
               <Target className="w-3.5 h-3.5 text-emerald-400" />
               <span>GPS Precision</span>
@@ -369,9 +382,9 @@ export const WorkerLiveNavigationMap: React.FC<WorkerLiveNavigationMapProps> = (
             </div>
           </div>
 
-          <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-3 space-y-1">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 space-y-1">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-              <Mountain className="w-3.5 h-3.5 text-cyan-400" />
+              <Mountain className="w-3.5 h-3.5 text-sky-400" />
               <span>Altitude</span>
             </span>
             <div className="text-lg font-black text-white">
@@ -379,7 +392,7 @@ export const WorkerLiveNavigationMap: React.FC<WorkerLiveNavigationMapProps> = (
             </div>
           </div>
 
-          <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-3 space-y-1">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 space-y-1">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
               <Activity className="w-3.5 h-3.5 text-emerald-400" />
               <span>Telemetry Stream</span>

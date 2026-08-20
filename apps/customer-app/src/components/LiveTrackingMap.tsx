@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import { Navigation, Compass, Layers, Radio, ExternalLink, MapPin, Gauge, Target, Mountain, Activity, ShieldCheck } from 'lucide-react';
 import { getSocket } from '../services/socket';
 import { SOCKET_EVENTS } from '@nearwork/types';
-import { Navigation, Compass, Layers, ShieldCheck, Zap, Radio, CheckCircle, Gauge, Activity, Target, Mountain, BatteryCharging } from 'lucide-react';
 
 // Fix default marker icon issues in Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -13,27 +13,46 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Device Locator Tile Engines
+// Google Maps & High-Definition Clean Navigation Tile Styles
 const TILE_STYLES = [
-  { name: 'Dark Obsidian', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attribution: '&copy; CartoDB &copy; OpenStreetMap' },
-  { name: 'Carto Voyager', url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attribution: '&copy; CartoDB' },
-  { name: 'OpenStreetMap', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '&copy; OpenStreetMap contributors' }
+  {
+    name: 'Google Maps Clean',
+    url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    attribution: '&copy; Google Maps',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+  },
+  {
+    name: 'Google Satellite Hybrid',
+    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    attribution: '&copy; Google Maps Satellite',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+  },
+  {
+    name: 'Carto Voyager Clean',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; CartoDB &copy; OpenStreetMap'
+  },
+  {
+    name: 'Dark Obsidian',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; CartoDB'
+  }
 ];
 
-// Customer Destination Icon (Customer House)
+// Customer Destination Pin
 const customerHomeIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [28, 45],
-  iconAnchor: [14, 45],
-  popupAnchor: [1, -38],
-  shadowSize: [45, 45]
+  iconSize: [30, 48],
+  iconAnchor: [15, 48],
+  popupAnchor: [1, -40],
+  shadowSize: [48, 48]
 });
 
-// Device Locator Futuristic Pulsing Radar Marker Icon with Direction Arrow
-const createDeviceLocatorRadarIcon = (heading: number = 0) => {
+// Google Maps Style Live Technician Marker with Pulsing Cyan Waves
+const createCustomerTrackingRadarIcon = (heading: number = 0) => {
   return L.divIcon({
-    className: 'device-locator-radar-icon',
+    className: 'customer-tracking-radar-icon',
     html: `
       <div style="
         position: relative;
@@ -43,40 +62,40 @@ const createDeviceLocatorRadarIcon = (heading: number = 0) => {
         align-items: center;
         justify-content: center;
       ">
-        <!-- Pulsing Radar Wave -->
+        <!-- Pulsing Wave -->
         <div style="
           position: absolute;
           width: 48px;
           height: 48px;
-          background: rgba(0, 242, 254, 0.25);
-          border: 2px solid #00f2fe;
+          background: rgba(14, 165, 233, 0.25);
+          border: 2px solid #0284c7;
           border-radius: 50%;
-          box-shadow: 0 0 20px #00f2fe;
-          animation: deviceRadarPulse 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+          box-shadow: 0 0 20px #0284c7;
+          animation: lightPulse 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
         "></div>
 
-        <!-- Center Glowing Core & Compass Bearing -->
+        <!-- Google Navigation Direction Indicator -->
         <div style="
           position: relative;
           z-index: 10;
-          width: 22px;
-          height: 22px;
-          background: #00f2fe;
-          border: 2.5px solid #ffffff;
+          width: 28px;
+          height: 28px;
+          background: #0284c7;
+          border: 3px solid #ffffff;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 0 12px #00f2fe;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.3);
           transform: rotate(${heading}deg);
           transition: transform 0.4s ease;
         ">
           <div style="
             width: 0;
             height: 0;
-            border-left: 4px solid transparent;
-            border-right: 4px solid transparent;
-            border-bottom: 7px solid #0f172a;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 9px solid #ffffff;
             margin-top: -2px;
           "></div>
         </div>
@@ -101,7 +120,6 @@ function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: num
   return R * c;
 }
 
-// Controller to Pan & Adjust Map
 const MapController: React.FC<{
   center: [number, number];
   recenterTrigger: number;
@@ -132,7 +150,6 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
   workerName = 'Service Partner',
   isEnRoute = true
 }) => {
-  // Real Telemetry States
   const [workerPos, setWorkerPos] = useState<[number, number]>(
     workerLat && workerLng ? [workerLat, workerLng] : [customerLat - 0.012, customerLng - 0.015]
   );
@@ -143,24 +160,14 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
   const [pathHistory, setPathHistory] = useState<[number, number][]>([]);
   const [tileStyleIndex, setTileStyleIndex] = useState<number>(0);
   const [recenterTrigger, setRecenterTrigger] = useState<number>(0);
-  const [edgeLogs, setEdgeLogs] = useState<Array<{ id: number; time: string; text: string }>>([
-    {
-      id: 1,
-      time: new Date().toTimeString().split(' ')[0],
-      text: '🛰️ Device Locator AI: High-Accuracy Real-Time Tracking Initialized'
-    }
-  ]);
-  const logCountRef = useRef(1);
 
-  // Sync initial worker pos
   useEffect(() => {
-    if (workerLat && workerLng) {
+    if (workerLat && workerLng && !isNaN(workerLat) && !isNaN(workerLng)) {
       setWorkerPos([workerLat, workerLng]);
       setPathHistory((prev) => [...prev, [workerLat, workerLng]]);
     }
   }, [workerLat, workerLng]);
 
-  // Real WebSocket GPS Listener
   useEffect(() => {
     const socket = getSocket();
 
@@ -173,31 +180,10 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
           return next.length > 100 ? next.slice(-100) : next;
         });
 
-        // Real Telemetry from hardware GPS
-        if (data.speed !== undefined && data.speed !== null) {
-          setRealSpeed(Number(data.speed));
-        }
-        if (data.accuracy !== undefined) {
-          setRealAccuracy(Number(data.accuracy));
-        }
-        if (data.altitude !== undefined) {
-          setRealAltitude(Math.round(Number(data.altitude)));
-        }
-        if (data.heading !== undefined) {
-          setRealHeading(Number(data.heading));
-        }
-
-        // Add real edge log
-        logCountRef.current += 1;
-        const nowTime = new Date().toTimeString().split(' ')[0];
-        setEdgeLogs((prev) => [
-          {
-            id: logCountRef.current,
-            time: nowTime,
-            text: `🛰️ [GPS Update #${logCountRef.current}] ${data.latitude.toFixed(5)}, ${data.longitude.toFixed(5)} • Speed: ${data.speed || 0} km/h (±${data.accuracy || 2.5}m)`
-          },
-          ...prev.slice(0, 15)
-        ]);
+        if (data.speed !== undefined && data.speed !== null) setRealSpeed(Number(data.speed));
+        if (data.accuracy !== undefined) setRealAccuracy(Number(data.accuracy));
+        if (data.altitude !== undefined) setRealAltitude(Math.round(Number(data.altitude)));
+        if (data.heading !== undefined) setRealHeading(Number(data.heading));
       }
     };
 
@@ -207,7 +193,7 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
     };
   }, []);
 
-  const radarIcon = useMemo(() => createDeviceLocatorRadarIcon(realHeading), [realHeading]);
+  const radarIcon = useMemo(() => createCustomerTrackingRadarIcon(realHeading), [realHeading]);
 
   const rawDistanceKm = calculateDistanceKm(workerPos[0], workerPos[1], customerLat, customerLng);
   const isAtPremises = rawDistanceKm <= 0.15;
@@ -225,44 +211,37 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
   const currentStyle = TILE_STYLES[tileStyleIndex];
 
   return (
-    <div className="w-full rounded-3xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Device Locator Header */}
-      <div className="bg-slate-900/90 backdrop-blur-md px-5 py-3.5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+    <div className="w-full rounded-3xl overflow-hidden shadow-2xl border border-slate-700 bg-slate-900 text-slate-100 flex flex-col font-sans">
+      {/* Header */}
+      <div className="bg-slate-900 px-4 sm:px-6 py-3.5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center space-x-3">
-          <div className="relative flex h-3.5 w-3.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-cyan-500 shadow-[0_0_12px_#00f2fe]"></span>
+          <div className="w-8 h-8 rounded-xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400">
+            <Navigation className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-extrabold text-sm tracking-wide text-white flex items-center gap-2">
-              <span className="bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-                Device Locator AI
-              </span>
-              <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-500/30">
-                Real-Time GPS Engine
+            <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
+              <span>Google Maps Live Tracking</span>
+              <span className="text-[10px] font-mono font-bold text-sky-400 bg-sky-950/80 px-2 py-0.5 rounded-full border border-sky-500/30">
+                Turn-by-Turn GPS
               </span>
             </h3>
           </div>
         </div>
 
-        {/* Header Badges */}
+        {/* Action Controls */}
         <div className="flex items-center space-x-2 text-xs">
-          <div className="bg-emerald-950/80 border border-emerald-500/30 text-emerald-400 px-3 py-1 rounded-full flex items-center space-x-1.5 font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981]"></span>
-            <span className="text-[11px]">GPS Live Lock: Active</span>
-          </div>
           <button
             onClick={handleToggleStyle}
-            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 px-3 py-1 rounded-full flex items-center space-x-1.5 font-medium transition cursor-pointer"
+            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-full flex items-center space-x-1.5 font-medium transition cursor-pointer"
           >
-            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+            <Layers className="w-3.5 h-3.5 text-sky-400" />
             <span className="text-[11px]">{currentStyle.name}</span>
           </button>
         </div>
       </div>
 
       {/* Main Map Engine */}
-      <div className="relative w-full h-80 sm:h-96 md:h-[430px] bg-slate-900">
+      <div className="relative w-full h-80 sm:h-96 md:h-[440px] bg-slate-100">
         <MapContainer
           center={workerPos}
           zoom={16}
@@ -280,18 +259,18 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
           <Marker position={[customerLat, customerLng]} icon={customerHomeIcon}>
             <Popup>
               <div className="p-1 text-slate-900 text-xs">
-                <p className="font-bold text-sky-600">🏠 Delivery Address</p>
-                <p className="text-[10px] text-slate-600">Service Destination</p>
+                <p className="font-bold text-red-600">🏠 Your Delivery Address</p>
+                <p className="text-[10px] text-slate-600 mt-0.5">Technician will arrive here</p>
               </div>
             </Popup>
           </Marker>
 
-          {/* Dynamic Trajectory Route Polyline */}
+          {/* Breadcrumb Trajectory History */}
           {pathHistory.length > 1 && (
             <Polyline
               positions={pathHistory}
               pathOptions={{
-                color: '#00f2fe',
+                color: '#0284c7',
                 weight: 4,
                 opacity: 0.85,
                 dashArray: '8, 8',
@@ -300,34 +279,33 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
             />
           )}
 
-          {/* Direct Line of Sight to Customer */}
+          {/* Route Line to Destination */}
           <Polyline
             positions={[workerPos, [customerLat, customerLng]]}
             pathOptions={{
-              color: isAtPremises ? '#10b981' : '#38bdf8',
-              weight: 3,
-              opacity: 0.6,
-              dashArray: '4, 6'
+              color: isAtPremises ? '#10b981' : '#0284c7',
+              weight: 5,
+              opacity: 0.85
             }}
           />
 
-          {/* Device Locator High-Accuracy Radius Circle */}
+          {/* High-Accuracy Radius Circle */}
           <Circle
             center={workerPos}
             radius={Math.min(100, Math.max(10, realAccuracy * 1.5))}
             pathOptions={{
-              color: '#00f2fe',
-              fillColor: '#00f2fe',
+              color: '#0284c7',
+              fillColor: '#0284c7',
               fillOpacity: 0.12,
               weight: 1.5
             }}
           />
 
-          {/* Worker Pulsing Radar Marker */}
+          {/* Worker Navigation Marker */}
           <Marker position={workerPos} icon={radarIcon}>
             <Popup>
               <div className="p-1.5 text-slate-900 text-xs font-sans">
-                <p className="font-black text-cyan-600 flex items-center gap-1">
+                <p className="font-black text-sky-600 flex items-center gap-1">
                   <span>⚡</span> {workerName}
                 </p>
                 <p className="text-[11px] text-slate-600 mt-0.5">
@@ -340,45 +318,45 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
           <MapController center={workerPos} recenterTrigger={recenterTrigger} />
         </MapContainer>
 
-        {/* Floating Map Overlay Quick-Controls */}
+        {/* Floating Quick Controls */}
         <div className="absolute top-4 right-4 z-[400] flex flex-col gap-2">
           <button
             onClick={handleRecenter}
-            className="bg-slate-900/90 hover:bg-slate-800 text-cyan-400 border border-cyan-500/40 px-3 py-2 rounded-2xl shadow-xl backdrop-blur-md text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer"
+            className="bg-white/95 hover:bg-white text-slate-900 border border-gray-200 px-3.5 py-2 rounded-2xl shadow-xl backdrop-blur-md text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer"
           >
-            <Compass className="w-4 h-4 text-cyan-400 animate-spin-slow" />
-            <span>🎯 Recenter Device</span>
+            <Compass className="w-4 h-4 text-sky-600" />
+            <span>🎯 Recenter</span>
           </button>
         </div>
 
-        {/* Distance & ETA Live Floating Badge */}
-        <div className="absolute bottom-4 left-4 right-4 sm:right-auto z-[400] bg-slate-950/90 backdrop-blur-md border border-slate-800 p-3.5 rounded-2xl shadow-2xl flex items-center justify-between sm:justify-start gap-4">
+        {/* ETA Floating Card (Google Maps Style) */}
+        <div className="absolute bottom-4 left-4 right-4 sm:right-auto z-[400] bg-white/95 backdrop-blur-md border border-gray-200 p-3.5 rounded-2xl shadow-2xl flex items-center justify-between sm:justify-start gap-4 text-slate-900">
           <div>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">
               Estimated Arrival
             </span>
-            <div className="text-xl font-black text-white flex items-center gap-1.5">
-              <span>{isAtPremises ? 'Partner Arrived' : `${etaMins} mins away`}</span>
+            <div className="text-xl font-black text-slate-900">
+              {isAtPremises ? 'Arrived at Your Door' : `${etaMins} mins away`}
             </div>
           </div>
-          <div className="h-8 w-px bg-slate-800"></div>
+          <div className="h-8 w-px bg-slate-200"></div>
           <div>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
-              Distance
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">
+              Remaining Distance
             </span>
-            <div className="text-base font-black text-emerald-400">
-              {isAtPremises ? 'At Doorstep (0.0 km)' : `${distanceKm.toFixed(2)} km`}
+            <div className="text-base font-black text-sky-600">
+              {isAtPremises ? 'Doorstep (0.0 km)' : `${distanceKm.toFixed(2)} km`}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Device Telemetry Live Metrics HUD */}
-      <div className="bg-slate-900/95 border-t border-slate-800 p-4 sm:p-5">
+      {/* Hardware Telemetry HUD */}
+      <div className="bg-slate-950 border-t border-slate-800 p-4 sm:p-5">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-3 space-y-1">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 space-y-1">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-              <Gauge className="w-3.5 h-3.5 text-cyan-400" />
+              <Gauge className="w-3.5 h-3.5 text-sky-400" />
               <span>Speed</span>
             </span>
             <div className="text-lg font-black text-white">
@@ -386,56 +364,37 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
             </div>
           </div>
 
-          <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-3 space-y-1">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 space-y-1">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
               <Target className="w-3.5 h-3.5 text-emerald-400" />
-              <span>GPS Accuracy</span>
+              <span>GPS Precision</span>
             </span>
             <div className="text-lg font-black text-emerald-400">
               ±{realAccuracy.toFixed(1)} <small className="text-xs text-slate-400 font-normal">m</small>
             </div>
           </div>
 
-          <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-3 space-y-1">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 space-y-1">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-              <Mountain className="w-3.5 h-3.5 text-purple-400" />
-              <span>Altitude</span>
+              <Mountain className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Elevation</span>
             </span>
             <div className="text-lg font-black text-white">
               {realAltitude} <small className="text-xs text-slate-400 font-normal">m</small>
             </div>
           </div>
 
-          <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-3 space-y-1">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 space-y-1">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-              <Activity className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Hardware Signal</span>
+              <Activity className="w-3.5 h-3.5 text-sky-400" />
+              <span>Telemetry Stream</span>
             </span>
-            <div className="text-lg font-black text-cyan-400 flex items-center gap-1.5">
-              <span>98%</span>
-              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-500/30">
-                5G
+            <div className="text-lg font-black text-sky-400 flex items-center gap-1.5">
+              <span>Streaming</span>
+              <span className="text-[10px] text-sky-400 font-bold bg-sky-950 px-1.5 py-0.5 rounded border border-sky-500/30">
+                1Hz
               </span>
             </div>
-          </div>
-        </div>
-
-        {/* Real-time Edge Logs Terminal */}
-        <div className="mt-3.5 bg-slate-950 border border-slate-800 rounded-2xl p-3">
-          <div className="flex items-center justify-between pb-1.5 border-b border-slate-900">
-            <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
-              <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-              <span>Real-Time Hardware Telemetry Stream</span>
-            </span>
-            <span className="text-[10px] font-mono text-cyan-400">Live GPS WebSocket</span>
-          </div>
-          <div className="mt-2 font-mono text-[11px] text-slate-300 space-y-1 max-h-16 overflow-y-auto">
-            {edgeLogs.slice(0, 3).map((log) => (
-              <div key={log.id} className="flex items-start gap-2">
-                <span className="text-slate-500 text-[10px]">{log.time}</span>
-                <span className="text-cyan-300">{log.text}</span>
-              </div>
-            ))}
           </div>
         </div>
       </div>
