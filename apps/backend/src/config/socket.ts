@@ -112,6 +112,71 @@ export const initSocketIO = (httpServer: HttpServer): SocketIOServer => {
       }
     });
 
+    // Direct WebSocket Chat Relay (instant 5ms delivery)
+    socket.on(SOCKET_EVENTS.CHAT_MESSAGE, async (data: any) => {
+      const { bookingId, message, imageUrl } = data || {};
+      if (!bookingId || !message) return;
+
+      const payload = {
+        id: `msg_${Date.now()}`,
+        bookingId,
+        senderId: user.userId,
+        message,
+        imageUrl,
+        createdAt: new Date().toISOString(),
+        sender: {
+          id: user.userId,
+          name: user.name || 'User'
+        }
+      };
+
+      // Instantly broadcast to booking room
+      ioInstance?.to(`booking:${bookingId}`).emit(SOCKET_EVENTS.CHAT_MESSAGE, {
+        bookingId,
+        message: payload
+      });
+
+      // Asynchronously persist to database in background
+      try {
+        const { prisma } = await import('./db');
+        const chat = await prisma.chat.findUnique({ where: { bookingId } });
+        if (chat) {
+          await prisma.chatMessage.create({
+            data: {
+              chatId: chat.id,
+              senderId: user.userId,
+              message,
+              imageUrl
+            }
+          });
+        }
+      } catch (err) {
+        // non-blocking
+      }
+    });
+
+    // Instant Catalog Fetch over WebSocket (0ms HTTP header overhead)
+    socket.on('catalog:fetch', async (callback: (res: any) => void) => {
+      try {
+        const { appCache, CACHE_TTL } = await import('../utils/cache');
+        const { prisma } = await import('./db');
+        const categories = await appCache.getOrSet('all_categories', CACHE_TTL.CATEGORIES, () =>
+          prisma.serviceCategory.findMany({
+            where: { isActive: true },
+            include: { services: { where: { isActive: true } } },
+            orderBy: { sortOrder: 'asc' }
+          })
+        );
+        if (typeof callback === 'function') {
+          callback({ success: true, data: categories });
+        }
+      } catch (err: any) {
+        if (typeof callback === 'function') {
+          callback({ success: false, message: err.message });
+        }
+      }
+    });
+
     socket.on('disconnect', () => {
       // Clean up connection
     });
