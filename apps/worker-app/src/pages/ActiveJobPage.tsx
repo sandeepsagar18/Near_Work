@@ -327,8 +327,11 @@ export const ActiveJobPage: React.FC = () => {
       });
 
       if (res.success) {
-        setSuccessMsg('Service completed successfully and earnings credited to wallet!');
+        setSuccessMsg('Service completed successfully! Restoring to Dashboard in 2 seconds...');
         fetchJob();
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2200);
       } else {
         setErrorMsg(res.message || 'Failed to complete job');
       }
@@ -888,12 +891,22 @@ export const ActiveJobPage: React.FC = () => {
                 <div className="p-3 bg-slate-900/80 rounded-2xl border border-slate-800 text-xs text-slate-300">
                   <span>Started: {formatTime(job.startedAt)} • Finished: {formatTime(job.completedAt)} • Duration: {formatTimer(elapsedSeconds)}</span>
                 </div>
-                <button
-                  onClick={() => navigate('/earnings')}
-                  className="py-3 px-8 bg-emerald-500 text-slate-950 font-black text-xs sm:text-sm rounded-2xl hover:bg-emerald-400 shadow-lg cursor-pointer"
-                >
-                  View Earnings Ledger & Withdraw
-                </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="py-3 px-6 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs sm:text-sm rounded-2xl border border-slate-700 shadow-lg cursor-pointer flex items-center justify-center space-x-2"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Return to Dashboard</span>
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/earnings')}
+                    className="py-3 px-6 bg-emerald-500 text-slate-950 font-black text-xs sm:text-sm rounded-2xl hover:bg-emerald-400 shadow-lg cursor-pointer flex items-center justify-center space-x-2"
+                  >
+                    <span>View Earnings & Withdraw</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
