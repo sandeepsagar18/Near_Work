@@ -250,42 +250,86 @@ export const TrackingPage: React.FC = () => {
 
         {/* 2-Column Responsive Split View on Desktop */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left Column: Interactive Live Map */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-4">
+          {/* Left Column: Live Service Status & Dispatch Card */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
+              {/* Header Badge */}
               <div className="flex justify-between items-center">
-                <h3 className="font-bold text-sm text-gray-900 flex items-center">
-                  <Navigation className="w-4 h-4 mr-2 text-indigo-600" />
-                  Live GPS Field Tracking
-                </h3>
-                {isEnRoute && (
-                  <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full">
-                    Partner is on the way (ETA ~8 mins)
-                  </span>
-                )}
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-9 h-9 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                    <Navigation className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm text-gray-900">Live Service Dispatch Status</h3>
+                    <p className="text-xs text-gray-400">Real-time technician tracking</p>
+                  </div>
+                </div>
+
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  isEnRoute
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 animate-pulse'
+                    : isArrived
+                    ? 'bg-sky-50 text-sky-700 border border-sky-200'
+                    : isStarted
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                    : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                }`}>
+                  {isEnRoute ? '🚗 On The Way (ETA ~8 mins)' : isArrived ? '📍 Arrived at Premises' : isStarted ? '⚡ Service In Progress' : isCompleted ? '✅ Completed' : '🔍 Dispatching'}
+                </span>
               </div>
 
+              {/* Technician Info Banner if assigned */}
+              {booking.worker && (
+                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center space-x-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-md shadow-indigo-600/30">
+                      {booking.worker.user.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-sm flex items-center gap-1.5">
+                        <span>{booking.worker.user.name}</span>
+                        <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                      </h4>
+                      <div className="flex items-center space-x-2 text-xs text-gray-500 mt-0.5">
+                        <span className="flex items-center text-amber-500 font-bold">
+                          <Star className="w-3.5 h-3.5 mr-0.5 fill-amber-400 text-amber-400" />
+                          {booking.worker.averageRating || '4.9'}
+                        </span>
+                        <span>•</span>
+                        <span className="text-emerald-700 font-medium">Verified Expert</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 w-full sm:w-auto">
+                    <button
+                      onClick={() => setIsChatOpen(true)}
+                      className="flex-1 sm:flex-none px-4 py-2.5 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition cursor-pointer"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Chat</span>
+                    </button>
+                    {booking.worker.user.phone && (
+                      <button
+                        onClick={() => window.location.href = `tel:${booking.worker.user.phone}`}
+                        className="flex-1 sm:flex-none px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 shadow-md shadow-indigo-600/30 transition cursor-pointer"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        <span>Call</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Service Destination Details */}
               {booking.address && (
-                <div className="min-h-[420px]">
-                  <LiveTrackingMap
-                    bookingId={booking.id}
-                    customerLat={booking.address.latitude}
-                    customerLng={booking.address.longitude}
-                    customerAddress={booking.address.addressLine}
-                    workerLat={workerLocation?.lat}
-                    workerLng={workerLocation?.lng}
-                    workerName={booking.worker?.user?.name}
-                    workerPhone={booking.worker?.user?.phone}
-                    workerRating={booking.worker?.averageRating}
-                    workerStatus={booking.status}
-                    isEnRoute={isEnRoute}
-                    onCallWorker={() => {
-                      if (booking.worker?.user?.phone) {
-                        window.location.href = `tel:${booking.worker.user.phone}`;
-                      }
-                    }}
-                    onChatWorker={() => setIsChatOpen(true)}
-                  />
+                <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100 flex items-start space-x-3 text-xs text-gray-600">
+                  <Home className="w-4 h-4 text-indigo-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-gray-900 block">Service Destination</span>
+                    <p className="mt-0.5">{booking.address.addressLine}, {booking.address.city}, {booking.address.state} - {booking.address.pincode}</p>
+                  </div>
                 </div>
               )}
             </div>
