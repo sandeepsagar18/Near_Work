@@ -33,8 +33,8 @@ interface WorkerAuthContextType {
   setActiveJobAlert: (alert: any) => void;
   recordDecline: (bookingId: string) => void;
   toggleOnlineStatus: () => Promise<void>;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (data: any) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  register: (data: any) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
 }
@@ -267,7 +267,7 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
       const res = await WorkerApiClient.request('/auth/login', {
         method: 'POST',
@@ -290,15 +290,15 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           } as any);
         }
         refreshProfile().catch(() => {});
-        return true;
+        return { success: true };
       }
-      return false;
-    } catch (e) {
-      return false;
+      return { success: false, message: res.message || 'Invalid worker credentials' };
+    } catch (e: any) {
+      return { success: false, message: e.message || 'Connection error. Please try again.' };
     }
   };
 
-  const register = async (data: any): Promise<boolean> => {
+  const register = async (data: any): Promise<{ success: boolean; message?: string }> => {
     try {
       const res = await WorkerApiClient.request('/auth/register/worker', {
         method: 'POST',
@@ -311,11 +311,11 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           res.data.tokens.refreshToken
         );
         await refreshProfile();
-        return true;
+        return { success: true };
       }
-      return false;
-    } catch (e) {
-      return false;
+      return { success: false, message: res.message || 'Registration failed' };
+    } catch (e: any) {
+      return { success: false, message: e.message || 'Registration error' };
     }
   };
 

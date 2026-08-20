@@ -21,18 +21,18 @@ export const AuthPage: React.FC = () => {
 
     try {
       if (isLogin) {
-        const success = await login(email, password);
-        if (success) {
+        const result = await login(email, password);
+        if (result.success) {
           navigate('/');
         } else {
-          setError('Invalid email or password');
+          setError(result.message || 'Invalid email or password');
         }
       } else {
-        const success = await register({ name, email, phone, password });
-        if (success) {
+        const result = await register({ name, email, phone, password });
+        if (result.success) {
           navigate('/');
         } else {
-          setError('Registration failed. Please check inputs.');
+          setError(result.message || 'Registration failed. Please check inputs.');
         }
       }
     } catch (err: any) {

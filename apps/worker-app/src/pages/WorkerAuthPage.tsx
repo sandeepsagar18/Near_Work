@@ -39,14 +39,14 @@ export const WorkerAuthPage: React.FC = () => {
 
     try {
       if (isLogin) {
-        const success = await login(email, password);
-        if (success) {
+        const result = await login(email, password);
+        if (result.success) {
           navigate('/');
         } else {
-          setError('Invalid credentials or unauthorized worker role');
+          setError(result.message || 'Invalid worker credentials');
         }
       } else {
-        const success = await register({
+        const result = await register({
           name,
           email,
           phone,
@@ -63,10 +63,10 @@ export const WorkerAuthPage: React.FC = () => {
           bankIfsc: 'HDFC0001234'
         });
 
-        if (success) {
+        if (result.success) {
           navigate('/');
         } else {
-          setError('Registration failed. Please check your details.');
+          setError(result.message || 'Registration failed. Please check your details.');
         }
       }
     } catch (err: any) {

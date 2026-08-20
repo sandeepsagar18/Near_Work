@@ -185,21 +185,21 @@ export class AuthService {
     });
 
     if (!user) {
-      const err: AppError = new Error('Invalid email or password');
+      const err: AppError = new Error('No account found with this email address. Please register or check your email.');
       err.statusCode = HTTP_STATUS.UNAUTHORIZED;
       err.code = ERROR_CODES.AUTH_INVALID_CREDENTIALS;
       throw err;
     }
 
     if (!user.isActive) {
-      const err: AppError = new Error('Account has been deactivated');
+      const err: AppError = new Error('Account has been deactivated. Please contact support.');
       err.statusCode = HTTP_STATUS.FORBIDDEN;
       err.code = ERROR_CODES.AUTH_FORBIDDEN;
       throw err;
     }
 
     if (data.role && user.role !== data.role) {
-      const err: AppError = new Error(`Account is not registered as a ${data.role}`);
+      const err: AppError = new Error(`This account is registered as ${user.role}. Please log in on the correct portal.`);
       err.statusCode = HTTP_STATUS.FORBIDDEN;
       err.code = ERROR_CODES.AUTH_FORBIDDEN;
       throw err;
@@ -207,7 +207,7 @@ export class AuthService {
 
     const isValidPassword = await bcrypt.compare(data.password, user.passwordHash);
     if (!isValidPassword) {
-      const err: AppError = new Error('Invalid email or password');
+      const err: AppError = new Error('Incorrect password. Please verify and try again.');
       err.statusCode = HTTP_STATUS.UNAUTHORIZED;
       err.code = ERROR_CODES.AUTH_INVALID_CREDENTIALS;
       throw err;

@@ -16,8 +16,8 @@ interface AuthContextType {
   selectedAddress: any | null;
   setSelectedAddress: (addr: any) => void;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (data: any) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  register: (data: any) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
 }
@@ -59,35 +59,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    const res = await ApiClient.request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email: email.trim(), password: password.trim() })
-    });
+  const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const res = await ApiClient.request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email: email.trim(), password: password.trim() })
+      });
 
-    if (res.success && res.data?.tokens) {
-      ApiClient.setTokens(res.data.tokens.accessToken, res.data.tokens.refreshToken);
-      if (res.data.user) {
-        setUser(res.data.user);
+      if (res.success && res.data?.tokens) {
+        ApiClient.setTokens(res.data.tokens.accessToken, res.data.tokens.refreshToken);
+        if (res.data.user) {
+          setUser(res.data.user);
+        }
+        refreshProfile().catch(() => {});
+        return { success: true };
       }
-      refreshProfile().catch(() => {});
-      return true;
+      return { success: false, message: res.message || 'Invalid email or password' };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Connection error. Please try again.' };
     }
-    return false;
   };
 
-  const register = async (data: any): Promise<boolean> => {
-    const res = await ApiClient.request('/auth/register/customer', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
+  const register = async (data: any): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const res = await ApiClient.request('/auth/register/customer', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
 
-    if (res.success && res.data?.tokens) {
-      ApiClient.setTokens(res.data.tokens.accessToken, res.data.tokens.refreshToken);
-      await refreshProfile();
-      return true;
+      if (res.success && res.data?.tokens) {
+        ApiClient.setTokens(res.data.tokens.accessToken, res.data.tokens.refreshToken);
+        await refreshProfile();
+        return { success: true };
+      }
+      return { success: false, message: res.message || 'Registration failed' };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Registration error' };
     }
-    return false;
   };
 
   const logout = async () => {
