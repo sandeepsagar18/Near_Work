@@ -124,6 +124,56 @@ export class CustomerController {
   }
 
   /**
+   * Get all active / online verified workers for customer dashboard display
+   */
+  static async getActiveWorkers(req: Request, res: Response, next: NextFunction) {
+    try {
+      const lat = req.query.lat ? Number(req.query.lat) : undefined;
+      const lng = req.query.lng ? Number(req.query.lng) : undefined;
+
+      const workers = await prisma.workerProfile.findMany({
+        where: {
+          status: 'ONLINE',
+          verificationStatus: 'VERIFIED'
+        },
+        include: {
+          user: { select: { id: true, name: true, phone: true, avatarUrl: true } },
+          skills: { include: { category: true } }
+        },
+        take: 20
+      });
+
+      const { calculateDistanceKm } = await import('../utils/haversine');
+
+      const data = workers.map((w) => {
+        let distanceKm = 0.8;
+        if (lat && lng && w.currentLat && w.currentLng) {
+          const dist = calculateDistanceKm(lat, lng, w.currentLat, w.currentLng);
+          distanceKm = dist <= 0.2 ? 0.2 : Math.round(dist * 10) / 10;
+        }
+
+        return {
+          id: w.id,
+          userId: w.userId,
+          name: w.user.name,
+          phone: w.user.phone,
+          avatarUrl: w.user.avatarUrl,
+          averageRating: w.averageRating || 4.9,
+          totalJobsCompleted: w.totalJobsCompleted || 0,
+          experienceYears: w.experienceYears || 2,
+          skills: w.skills.map((s) => s.category.name),
+          distanceKm,
+          status: w.status
+        };
+      });
+
+      res.status(HTTP_STATUS.OK).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Get customer bookings with filtering (upcoming, active, completed, cancelled)
    */
   static async getBookings(req: Request, res: Response, next: NextFunction) {

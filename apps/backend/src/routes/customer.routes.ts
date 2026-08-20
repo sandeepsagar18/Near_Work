@@ -11,6 +11,7 @@ const router = Router();
 router.use(authenticateJwt, requireCustomer);
 
 router.get('/profile', CustomerController.getProfile);
+router.get('/active-workers', CustomerController.getActiveWorkers);
 router.get('/addresses', CustomerController.getAddresses);
 router.post('/addresses', validateRequest(createAddressSchema), CustomerController.addAddress);
 router.post('/live-location', CustomerController.updateLiveLocation);
