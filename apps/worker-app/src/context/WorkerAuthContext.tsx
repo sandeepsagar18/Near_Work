@@ -173,6 +173,10 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }, 1000);
 
       const handleJobAssigned = (data: any) => {
+        // If worker is OFFLINE / INACTIVE, do not show any job alert!
+        if (worker.workerProfile?.status !== WorkerStatus.ONLINE) {
+          return;
+        }
         // If worker has already declined 2 times, do not show alert
         if ((declinedCountsRef.current[data.bookingId] || 0) >= 2) {
           return;
@@ -191,6 +195,10 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       // Fast 2s fallback poller for both WORKER_ASSIGNED and SEARCHING_WORKER
       const pollTimer = setInterval(async () => {
+        // If worker is OFFLINE / INACTIVE, do not poll or alert!
+        if (worker.workerProfile?.status !== WorkerStatus.ONLINE) {
+          return;
+        }
         if (!activeJobAlertRef.current) {
           try {
             const res = await WorkerApiClient.request('/worker/jobs');

@@ -137,11 +137,15 @@ export const WorkerDashboardPage: React.FC = () => {
     }
   };
 
-  const pendingAssignmentJob = jobs.find(
-    (j) =>
-      (j.status === 'WORKER_ASSIGNED' || j.status === 'SEARCHING_WORKER') &&
-      getDeclineCount(j.id) < 2
-  );
+  const isOnline = worker.workerProfile.status === 'ONLINE';
+
+  const pendingAssignmentJob = isOnline
+    ? jobs.find(
+        (j) =>
+          (j.status === 'WORKER_ASSIGNED' || j.status === 'SEARCHING_WORKER') &&
+          getDeclineCount(j.id) < 2
+      )
+    : null;
   const activeJob = jobs.find((j) =>
     ['WORKER_ACCEPTED', 'WORKER_EN_ROUTE', 'WORKER_ARRIVED', 'SERVICE_STARTED'].includes(j.status)
   );
