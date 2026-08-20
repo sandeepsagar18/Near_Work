@@ -30,7 +30,7 @@ export class MatchingService {
     scheduledTimeSlot: string
   ): Promise<ScoredWorker[]> {
     // 1. Fetch verified, online workers with the matching skill category
-    const workers = await prisma.workerProfile.findMany({
+    let workers = await prisma.workerProfile.findMany({
       where: {
         status: WorkerStatus.ONLINE,
         verificationStatus: WorkerVerificationStatus.VERIFIED,
@@ -59,6 +59,34 @@ export class MatchingService {
         }
       }
     });
+
+    // Fallback: If no specialized worker is online, dispatch to all online verified workers
+    if (!workers || workers.length === 0) {
+      workers = await prisma.workerProfile.findMany({
+        where: {
+          status: WorkerStatus.ONLINE,
+          verificationStatus: WorkerVerificationStatus.VERIFIED
+        },
+        include: {
+          user: { select: { id: true, name: true, phone: true } },
+          skills: true,
+          availability: true,
+          bookings: {
+            where: {
+              scheduledDate: scheduledDate,
+              status: {
+                in: [
+                  BookingStatus.WORKER_ACCEPTED,
+                  BookingStatus.WORKER_EN_ROUTE,
+                  BookingStatus.WORKER_ARRIVED,
+                  BookingStatus.SERVICE_STARTED
+                ]
+              }
+            }
+          }
+        }
+      });
+    }
 
     if (!workers || workers.length === 0) {
       return [];
@@ -237,6 +265,8 @@ export class MatchingService {
         expiresInSeconds: APP_CONFIG.jobAcceptanceTimeoutSeconds
       };
       io.to('workers:all').emit('booking:dispatch', genericPayload);
+      io.to('workers:all').emit(SOCKET_EVENTS.BOOKING_ASSIGNED, genericPayload);
+      io.emit('booking:dispatch', genericPayload);
     }
 
     return true;
