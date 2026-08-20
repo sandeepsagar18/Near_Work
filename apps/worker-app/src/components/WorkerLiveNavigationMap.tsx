@@ -289,7 +289,7 @@ export const WorkerLiveNavigationMap: React.FC<WorkerLiveNavigationMapProps> = (
           {/* High-Accuracy Device Locator GPS Radius */}
           <Circle
             center={workerPos}
-            radius={Math.max(10, realAccuracy * 2)}
+            radius={Math.min(100, Math.max(10, realAccuracy * 1.5))}
             pathOptions={{
               color: '#10b981',
               fillColor: '#10b981',

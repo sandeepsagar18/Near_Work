@@ -185,7 +185,7 @@ export const WorkerRadarWidget: React.FC<WorkerRadarWidgetProps> = ({
           {/* High-Accuracy GPS Precision Ring */}
           <Circle
             center={workerPos}
-            radius={Math.max(10, accuracy * 2)}
+            radius={Math.min(100, Math.max(10, accuracy * 1.5))}
             pathOptions={{
               color: '#10b981',
               fillColor: '#10b981',

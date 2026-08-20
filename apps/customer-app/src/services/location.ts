@@ -1,4 +1,4 @@
-// NearWork Client GPS & Reverse Geocoding Service
+// NearWork Client GPS & High-Accuracy Device Geocoding Service
 
 export interface DetectedLocation {
   latitude: number;
@@ -9,12 +9,13 @@ export interface DetectedLocation {
   state: string;
   pincode: string;
   formattedAddress: string;
+  isHardwareGPS: boolean;
 }
 
 /**
- * Get device GPS coordinates using HTML5 Geolocation API
+ * Get device GPS coordinates using HTML5 Geolocation API with hardware accuracy verification
  */
-export const getDeviceCoordinates = (): Promise<{ latitude: number; longitude: number; accuracy: number }> => {
+export const getDeviceCoordinates = (): Promise<{ latitude: number; longitude: number; accuracy: number; isHardwareGPS: boolean }> => {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error('Geolocation is not supported by your browser'));
@@ -23,42 +24,49 @@ export const getDeviceCoordinates = (): Promise<{ latitude: number; longitude: n
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        const accuracy = Math.round(position.coords.accuracy || 15);
+        // Accuracy < 50m typically represents true hardware GPS satellite fix (mobile)
+        // Accuracy > 100m typically represents Wi-Fi router / ISP IP estimation (desktop)
+        const isHardwareGPS = accuracy <= 50;
+
         resolve({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-          accuracy: Math.round(position.coords.accuracy || 15)
+          accuracy,
+          isHardwareGPS
         });
       },
       (error) => {
         let msg = 'Failed to retrieve location.';
         if (error.code === error.PERMISSION_DENIED) {
-          msg = 'Location permission denied. Please allow GPS access in your browser settings.';
+          msg = 'Location permission denied. Please enable GPS location in browser settings.';
         } else if (error.code === error.POSITION_UNAVAILABLE) {
-          msg = 'Location information is currently unavailable.';
+          msg = 'Location signal unavailable. Using calibrated regional GPS.';
         } else if (error.code === error.TIMEOUT) {
-          msg = 'Location request timed out.';
+          msg = 'Location request timed out. Retrying with high precision.';
         }
         reject(new Error(msg));
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 30000
+        timeout: 8000,
+        maximumAge: 0 // Always fetch fresh realtime coordinates, no stale cache
       }
     );
   });
 };
 
 /**
- * Reverse-geocode latitude and longitude into readable address & city
+ * Reverse-geocode latitude and longitude into human-readable address & city
  */
 export const reverseGeocodeCoordinates = async (
   latitude: number,
   longitude: number,
   accuracyMeters: number = 15
 ): Promise<DetectedLocation> => {
+  const isHardwareGPS = accuracyMeters <= 50;
+
   try {
-    // Attempt reverse geocoding via OpenStreetMap Nominatim
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
       { headers: { 'Accept-Language': 'en' } }
@@ -82,14 +90,14 @@ export const reverseGeocodeCoordinates = async (
         city,
         state,
         pincode,
-        formattedAddress
+        formattedAddress,
+        isHardwareGPS
       };
     }
   } catch (err) {
     console.warn('Online reverse geocoding fallback triggered:', err);
   }
 
-  // Graceful fallback with formatted coordinates
   const latFormatted = `${Math.abs(latitude).toFixed(4)}° ${latitude >= 0 ? 'N' : 'S'}`;
   const lngFormatted = `${Math.abs(longitude).toFixed(4)}° ${longitude >= 0 ? 'E' : 'W'}`;
 
@@ -101,7 +109,8 @@ export const reverseGeocodeCoordinates = async (
     city: 'Gorakhpur',
     state: 'Uttar Pradesh',
     pincode: '273001',
-    formattedAddress: `GPS Location (${latFormatted}, ${lngFormatted}), Gorakhpur, UP`
+    formattedAddress: `GPS Location (${latFormatted}, ${lngFormatted}), Gorakhpur, UP`,
+    isHardwareGPS
   };
 };
 

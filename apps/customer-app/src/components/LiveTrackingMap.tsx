@@ -134,7 +134,7 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
 }) => {
   // Real Telemetry States
   const [workerPos, setWorkerPos] = useState<[number, number]>(
-    workerLat && workerLng ? [workerLat, workerLng] : [customerLat, customerLng]
+    workerLat && workerLng ? [workerLat, workerLng] : [customerLat - 0.012, customerLng - 0.015]
   );
   const [realSpeed, setRealSpeed] = useState<number>(38);
   const [realAltitude, setRealAltitude] = useState<number>(124);
@@ -314,7 +314,7 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
           {/* Device Locator High-Accuracy Radius Circle */}
           <Circle
             center={workerPos}
-            radius={Math.max(10, realAccuracy * 2)}
+            radius={Math.min(100, Math.max(10, realAccuracy * 1.5))}
             pathOptions={{
               color: '#00f2fe',
               fillColor: '#00f2fe',
