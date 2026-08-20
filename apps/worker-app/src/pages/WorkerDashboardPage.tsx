@@ -22,6 +22,7 @@ import { useWorkerLanguage } from '../context/LanguageContext';
 import { WorkerHeader } from '../components/WorkerHeader';
 import { JobRequestAlert } from '../components/JobRequestAlert';
 import { WorkerLiveNavigationMap } from '../components/WorkerLiveNavigationMap';
+import { WorkerRadarWidget } from '../components/WorkerRadarWidget';
 
 export const WorkerDashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -326,9 +327,13 @@ export const WorkerDashboardPage: React.FC = () => {
                 </button>
               </div>
             ) : !pendingAssignmentJob ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-10 text-center text-xs text-slate-400 space-y-2">
-                <p className="font-bold text-white text-sm">{t('worker.no_active_job', 'No Active Job Right Now')}</p>
-                <p>{t('worker.toggle_online_hint', 'Toggle your status to ONLINE to receive instant customer job dispatch alerts.')}</p>
+              <div className="space-y-4">
+                <WorkerRadarWidget
+                  initialLat={worker?.workerProfile?.currentLat || 26.7606}
+                  initialLng={worker?.workerProfile?.currentLng || 83.3732}
+                  workerName={worker?.name || 'Service Partner'}
+                  isOnline={worker?.workerProfile?.status === 'ONLINE'}
+                />
               </div>
             ) : null}
           </div>

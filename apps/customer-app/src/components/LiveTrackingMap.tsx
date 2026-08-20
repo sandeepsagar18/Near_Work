@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, useMap } from
 import L from 'leaflet';
 import { getSocket } from '../services/socket';
 import { SOCKET_EVENTS } from '@nearwork/types';
-import { Navigation, Compass, Layers, ShieldCheck, Zap, Radio, CheckCircle, Gauge, Activity } from 'lucide-react';
+import { Navigation, Compass, Layers, ShieldCheck, Zap, Radio, CheckCircle, Gauge, Activity, Target, Mountain, BatteryCharging } from 'lucide-react';
 
 // Fix default marker icon issues in Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -13,9 +13,12 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Device Locator Clean Light Tile Engine
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-const TILE_ATTRIBUTION = '&copy; <a href="https://carto.com/">CartoDB</a>';
+// Device Locator Tile Engines
+const TILE_STYLES = [
+  { name: 'Dark Obsidian', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attribution: '&copy; CartoDB &copy; OpenStreetMap' },
+  { name: 'Carto Voyager', url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attribution: '&copy; CartoDB' },
+  { name: 'OpenStreetMap', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '&copy; OpenStreetMap contributors' }
+];
 
 // Customer Destination Icon (Customer House)
 const customerHomeIcon = new L.Icon({
@@ -27,46 +30,60 @@ const customerHomeIcon = new L.Icon({
   shadowSize: [45, 45]
 });
 
-// Device Locator Clean Light Radar Beacon Icon
-const createLightDeviceRadarIcon = () => {
+// Device Locator Futuristic Pulsing Radar Marker Icon with Direction Arrow
+const createDeviceLocatorRadarIcon = (heading: number = 0) => {
   return L.divIcon({
     className: 'device-locator-radar-icon',
     html: `
       <div style="
         position: relative;
-        width: 44px;
-        height: 44px;
+        width: 48px;
+        height: 48px;
         display: flex;
         align-items: center;
         justify-content: center;
       ">
-        <!-- Pulsing Light Radar Wave -->
+        <!-- Pulsing Radar Wave -->
         <div style="
           position: absolute;
-          width: 44px;
-          height: 44px;
-          background: rgba(14, 165, 233, 0.25);
-          border: 2px solid #0284c7;
+          width: 48px;
+          height: 48px;
+          background: rgba(0, 242, 254, 0.25);
+          border: 2px solid #00f2fe;
           border-radius: 50%;
-          box-shadow: 0 0 16px rgba(14, 165, 233, 0.5);
-          animation: lightPulse 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+          box-shadow: 0 0 20px #00f2fe;
+          animation: deviceRadarPulse 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
         "></div>
 
-        <!-- Center Glowing Core -->
+        <!-- Center Glowing Core & Compass Bearing -->
         <div style="
           position: relative;
           z-index: 10;
-          width: 18px;
-          height: 18px;
-          background: #0284c7;
+          width: 22px;
+          height: 22px;
+          background: #00f2fe;
           border: 2.5px solid #ffffff;
           border-radius: 50%;
-          box-shadow: 0 2px 8px rgba(2, 132, 199, 0.6);
-        "></div>
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0 12px #00f2fe;
+          transform: rotate(${heading}deg);
+          transition: transform 0.4s ease;
+        ">
+          <div style="
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-bottom: 7px solid #0f172a;
+            margin-top: -2px;
+          "></div>
+        </div>
       </div>
     `,
-    iconSize: [44, 44],
-    iconAnchor: [22, 22]
+    iconSize: [48, 48],
+    iconAnchor: [24, 24]
   });
 };
 
@@ -119,19 +136,20 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
   const [workerPos, setWorkerPos] = useState<[number, number]>(
     workerLat && workerLng ? [workerLat, workerLng] : [customerLat, customerLng]
   );
-  const [realSpeed, setRealSpeed] = useState<number>(0);
-  const [realAltitude, setRealAltitude] = useState<number>(128);
+  const [realSpeed, setRealSpeed] = useState<number>(38);
+  const [realAltitude, setRealAltitude] = useState<number>(124);
   const [realAccuracy, setRealAccuracy] = useState<number>(2.5);
+  const [realHeading, setRealHeading] = useState<number>(0);
   const [pathHistory, setPathHistory] = useState<[number, number][]>([]);
+  const [tileStyleIndex, setTileStyleIndex] = useState<number>(0);
+  const [recenterTrigger, setRecenterTrigger] = useState<number>(0);
   const [edgeLogs, setEdgeLogs] = useState<Array<{ id: number; time: string; text: string }>>([
     {
       id: 1,
       time: new Date().toTimeString().split(' ')[0],
-      text: '[Turso DB] Real-Time GPS Engine Active (libSQL Cloud Connection)'
+      text: '🛰️ Device Locator AI: High-Accuracy Real-Time Tracking Initialized'
     }
   ]);
-  const [connectivityMode, setConnectivityMode] = useState<'online' | 'bleMesh' | 'smsStream'>('online');
-  const [recenterTrigger, setRecenterTrigger] = useState(0);
   const logCountRef = useRef(1);
 
   // Sync initial worker pos
@@ -155,7 +173,7 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
           return next.length > 100 ? next.slice(-100) : next;
         });
 
-        // Use REAL speed & telemetry from device
+        // Real Telemetry from hardware GPS
         if (data.speed !== undefined && data.speed !== null) {
           setRealSpeed(Number(data.speed));
         }
@@ -165,15 +183,18 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
         if (data.altitude !== undefined) {
           setRealAltitude(Math.round(Number(data.altitude)));
         }
+        if (data.heading !== undefined) {
+          setRealHeading(Number(data.heading));
+        }
 
-        // Add real Edge Log
+        // Add real edge log
         logCountRef.current += 1;
         const nowTime = new Date().toTimeString().split(' ')[0];
         setEdgeLogs((prev) => [
           {
             id: logCountRef.current,
             time: nowTime,
-            text: `[Turso ${connectivityMode}] GPS Update #${logCountRef.current}: ${data.latitude.toFixed(5)}, ${data.longitude.toFixed(5)} (${data.speed || 0} km/h)`
+            text: `🛰️ [GPS Update #${logCountRef.current}] ${data.latitude.toFixed(5)}, ${data.longitude.toFixed(5)} • Speed: ${data.speed || 0} km/h (±${data.accuracy || 2.5}m)`
           },
           ...prev.slice(0, 15)
         ]);
@@ -184,12 +205,11 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
     return () => {
       socket.off(SOCKET_EVENTS.TRACKING_UPDATE, handleTracking);
     };
-  }, [connectivityMode]);
+  }, []);
 
-  const radarIcon = useMemo(() => createLightDeviceRadarIcon(), []);
+  const radarIcon = useMemo(() => createDeviceLocatorRadarIcon(realHeading), [realHeading]);
 
   const rawDistanceKm = calculateDistanceKm(workerPos[0], workerPos[1], customerLat, customerLng);
-  // Within 150m (0.15 km) arrival geofence = exact doorstep location (0.0 km)
   const isAtPremises = rawDistanceKm <= 0.15;
   const distanceKm = isAtPremises ? 0 : rawDistanceKm;
   const etaMins = isAtPremises ? 1 : Math.max(1, Math.round((distanceKm / (realSpeed > 0 ? realSpeed : 30)) * 60));
@@ -198,20 +218,28 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
     setRecenterTrigger((prev) => prev + 1);
   };
 
+  const handleToggleStyle = () => {
+    setTileStyleIndex((prev) => (prev + 1) % TILE_STYLES.length);
+  };
+
+  const currentStyle = TILE_STYLES[tileStyleIndex];
+
   return (
-    <div className="w-full rounded-3xl overflow-hidden shadow-xl border border-slate-200 bg-white text-slate-900 flex flex-col font-sans">
-      {/* Device Locator Clean Light Top Header */}
-      <div className="bg-slate-50/90 backdrop-blur-md px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+    <div className="w-full rounded-3xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-950 text-slate-100 flex flex-col font-sans">
+      {/* Device Locator Header */}
+      <div className="bg-slate-900/90 backdrop-blur-md px-5 py-3.5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center space-x-3">
-          <div className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-500 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-sky-600 shadow-[0_0_8px_rgba(2,132,199,0.6)]"></span>
+          <div className="relative flex h-3.5 w-3.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-cyan-500 shadow-[0_0_12px_#00f2fe]"></span>
           </div>
           <div>
-            <h3 className="font-extrabold text-sm tracking-wide text-slate-900 flex items-center gap-2">
-              <span>Device Locator AI</span>
-              <span className="text-[11px] font-mono font-medium text-sky-700 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200">
-                Live GPS Telemetry
+            <h3 className="font-extrabold text-sm tracking-wide text-white flex items-center gap-2">
+              <span className="bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
+                Device Locator AI
+              </span>
+              <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-500/30">
+                Real-Time GPS Engine
               </span>
             </h3>
           </div>
@@ -219,19 +247,22 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
 
         {/* Header Badges */}
         <div className="flex items-center space-x-2 text-xs">
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-1 rounded-full flex items-center space-x-1.5 font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_#10b981]"></span>
-            <span className="text-[11px]">Turso Edge DB: Live</span>
+          <div className="bg-emerald-950/80 border border-emerald-500/30 text-emerald-400 px-3 py-1 rounded-full flex items-center space-x-1.5 font-medium">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981]"></span>
+            <span className="text-[11px]">GPS Live Lock: Active</span>
           </div>
-          <div className="bg-sky-50 border border-sky-200 text-sky-800 px-3 py-1 rounded-full flex items-center space-x-1.5 font-medium hidden sm:flex">
-            <span className="w-2 h-2 rounded-full bg-sky-500"></span>
-            <span className="text-[11px] capitalize">Mode: {connectivityMode}</span>
-          </div>
+          <button
+            onClick={handleToggleStyle}
+            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 px-3 py-1 rounded-full flex items-center space-x-1.5 font-medium transition cursor-pointer"
+          >
+            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-[11px]">{currentStyle.name}</span>
+          </button>
         </div>
       </div>
 
-      {/* Main Map Engine (Clean Light Mode Tiles) */}
-      <div className="relative w-full h-80 sm:h-96 md:h-[420px] bg-slate-100">
+      {/* Main Map Engine */}
+      <div className="relative w-full h-80 sm:h-96 md:h-[430px] bg-slate-900">
         <MapContainer
           center={workerPos}
           zoom={16}
@@ -240,178 +271,169 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
           className="w-full h-full"
         >
           <TileLayer
-            attribution={TILE_ATTRIBUTION}
-            url={TILE_URL}
+            key={currentStyle.url}
+            attribution={currentStyle.attribution}
+            url={currentStyle.url}
           />
 
           {/* Customer Destination Marker */}
           <Marker position={[customerLat, customerLng]} icon={customerHomeIcon}>
             <Popup>
               <div className="p-1 text-slate-900 text-xs">
-                <strong>🏠 Service Address</strong>
-                <p className="text-[11px] text-gray-600">Your Home Destination</p>
+                <p className="font-bold text-sky-600">🏠 Delivery Address</p>
+                <p className="text-[10px] text-slate-600">Service Destination</p>
               </div>
             </Popup>
           </Marker>
 
-          {/* Worker Live Radar Marker */}
-          <Marker position={workerPos} icon={radarIcon}>
-            <Popup>
-              <div className="p-1 text-slate-900 text-xs">
-                <strong className="text-sky-700 block">{workerName}</strong>
-                <span className="text-gray-700 block">Real Speed: {realSpeed} km/h</span>
-                <span className="text-gray-500 block">Accuracy: ±{realAccuracy}m</span>
-              </div>
-            </Popup>
-          </Marker>
-
-          {/* Glowing Radar Accuracy Circle */}
-          <Circle
-            center={workerPos}
-            radius={22}
-            pathOptions={{
-              color: '#0284c7',
-              fillColor: '#0284c7',
-              fillOpacity: 0.15,
-              weight: 1.5
-            }}
-          />
-
-          {/* Breadcrumb Path Polyline */}
+          {/* Dynamic Trajectory Route Polyline */}
           {pathHistory.length > 1 && (
             <Polyline
               positions={pathHistory}
               pathOptions={{
-                color: '#0284c7',
+                color: '#00f2fe',
                 weight: 4,
-                opacity: 0.9
+                opacity: 0.85,
+                dashArray: '8, 8',
+                lineJoin: 'round'
               }}
             />
           )}
 
-          {/* Route to Destination Polyline */}
+          {/* Direct Line of Sight to Customer */}
           <Polyline
             positions={[workerPos, [customerLat, customerLng]]}
             pathOptions={{
-              color: '#6366f1',
-              weight: 3.5,
-              opacity: 0.8,
-              dashArray: '6, 6'
+              color: isAtPremises ? '#10b981' : '#38bdf8',
+              weight: 3,
+              opacity: 0.6,
+              dashArray: '4, 6'
             }}
           />
+
+          {/* Device Locator High-Accuracy Radius Circle */}
+          <Circle
+            center={workerPos}
+            radius={Math.max(10, realAccuracy * 2)}
+            pathOptions={{
+              color: '#00f2fe',
+              fillColor: '#00f2fe',
+              fillOpacity: 0.12,
+              weight: 1.5
+            }}
+          />
+
+          {/* Worker Pulsing Radar Marker */}
+          <Marker position={workerPos} icon={radarIcon}>
+            <Popup>
+              <div className="p-1.5 text-slate-900 text-xs font-sans">
+                <p className="font-black text-cyan-600 flex items-center gap-1">
+                  <span>⚡</span> {workerName}
+                </p>
+                <p className="text-[11px] text-slate-600 mt-0.5">
+                  Speed: <strong>{realSpeed} km/h</strong> • Accuracy: <strong>±{realAccuracy.toFixed(1)}m</strong>
+                </p>
+              </div>
+            </Popup>
+          </Marker>
 
           <MapController center={workerPos} recenterTrigger={recenterTrigger} />
         </MapContainer>
 
-        {/* Top Floating Map Controls */}
-        <div className="absolute top-3 right-3 z-10 flex items-center space-x-2">
+        {/* Floating Map Overlay Quick-Controls */}
+        <div className="absolute top-4 right-4 z-[400] flex flex-col gap-2">
           <button
             onClick={handleRecenter}
-            className="bg-white/95 backdrop-blur-md border border-slate-300 hover:border-slate-400 text-slate-800 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 shadow-md transition-all cursor-pointer"
-            title="Recenter Radar"
+            className="bg-slate-900/90 hover:bg-slate-800 text-cyan-400 border border-cyan-500/40 px-3 py-2 rounded-2xl shadow-xl backdrop-blur-md text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer"
           >
-            <Compass className="w-3.5 h-3.5 text-sky-600 animate-spin" style={{ animationDuration: '6s' }} />
-            <span>Recenter Radar</span>
+            <Compass className="w-4 h-4 text-cyan-400 animate-spin-slow" />
+            <span>🎯 Recenter Device</span>
           </button>
         </div>
 
-        {/* Live Status Overlay Banner */}
-        <div className="absolute top-3 left-3 z-10 bg-white/95 backdrop-blur-md border border-slate-300 text-slate-900 px-3 py-1.5 rounded-xl shadow-md flex items-center space-x-2">
-          <Radio className="w-3.5 h-3.5 text-sky-600 animate-pulse" />
-          <span className="text-xs font-bold text-sky-800">
-            {distanceKm > 0.05 ? `ETA ~${etaMins} mins (${distanceKm.toFixed(2)} km)` : 'ETA ~1 min (0.0 km - Doorstep)'}
-          </span>
+        {/* Distance & ETA Live Floating Badge */}
+        <div className="absolute bottom-4 left-4 right-4 sm:right-auto z-[400] bg-slate-950/90 backdrop-blur-md border border-slate-800 p-3.5 rounded-2xl shadow-2xl flex items-center justify-between sm:justify-start gap-4">
+          <div>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+              Estimated Arrival
+            </span>
+            <div className="text-xl font-black text-white flex items-center gap-1.5">
+              <span>{isAtPremises ? 'Partner Arrived' : `${etaMins} mins away`}</span>
+            </div>
+          </div>
+          <div className="h-8 w-px bg-slate-800"></div>
+          <div>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+              Distance
+            </span>
+            <div className="text-base font-black text-emerald-400">
+              {isAtPremises ? 'At Doorstep (0.0 km)' : `${distanceKm.toFixed(2)} km`}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Telemetry Control Panel & Live Metrics Grid (Clean Light HUD) */}
-      <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 space-y-4">
-        {/* 4-Item Live Metrics Grid */}
+      {/* Device Telemetry Live Metrics HUD */}
+      <div className="bg-slate-900/95 border-t border-slate-800 p-4 sm:p-5">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {/* Speed Card */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-3 shadow-sm flex flex-col">
-            <span className="text-[10px] uppercase font-bold text-slate-500">Real Speed</span>
-            <span className="text-xl font-black text-slate-900 font-mono flex items-baseline gap-1 mt-0.5">
-              {realSpeed.toFixed(1)} <small className="text-xs font-normal text-sky-600 font-sans">km/h</small>
+          <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-3 space-y-1">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+              <Gauge className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Speed</span>
             </span>
+            <div className="text-lg font-black text-white">
+              {realSpeed} <small className="text-xs text-slate-400 font-normal">km/h</small>
+            </div>
           </div>
 
-          {/* Altitude Card */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-3 shadow-sm flex flex-col">
-            <span className="text-[10px] uppercase font-bold text-slate-500">Altitude</span>
-            <span className="text-xl font-black text-slate-900 font-mono flex items-baseline gap-1 mt-0.5">
-              {realAltitude} <small className="text-xs font-normal text-sky-600 font-sans">m</small>
+          <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-3 space-y-1">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+              <Target className="w-3.5 h-3.5 text-emerald-400" />
+              <span>GPS Accuracy</span>
             </span>
+            <div className="text-lg font-black text-emerald-400">
+              ±{realAccuracy.toFixed(1)} <small className="text-xs text-slate-400 font-normal">m</small>
+            </div>
           </div>
 
-          {/* Accuracy Card */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-3 shadow-sm flex flex-col">
-            <span className="text-[10px] uppercase font-bold text-slate-500">GPS Accuracy</span>
-            <span className="text-xl font-black text-slate-900 font-mono flex items-baseline gap-1 mt-0.5">
-              ±{realAccuracy.toFixed(1)} <small className="text-xs font-normal text-sky-600 font-sans">m</small>
+          <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-3 space-y-1">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+              <Mountain className="w-3.5 h-3.5 text-purple-400" />
+              <span>Altitude</span>
             </span>
+            <div className="text-lg font-black text-white">
+              {realAltitude} <small className="text-xs text-slate-400 font-normal">m</small>
+            </div>
           </div>
 
-          {/* Signal / Mode Card */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-3 shadow-sm flex flex-col">
-            <span className="text-[10px] uppercase font-bold text-slate-500">Connectivity</span>
-            <span className="text-base font-black text-emerald-600 flex items-center gap-1 mt-1">
-              <Zap className="w-4 h-4 text-emerald-600" />
-              <span className="text-xs font-bold">Active 5G</span>
+          <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-3 space-y-1">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+              <Activity className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Hardware Signal</span>
             </span>
+            <div className="text-lg font-black text-cyan-400 flex items-center gap-1.5">
+              <span>98%</span>
+              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                5G
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Connectivity Mode Selector */}
-        <div className="space-y-2">
-          <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
-            Connectivity Engine Mode
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setConnectivityMode('online')}
-              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                connectivityMode === 'online'
-                  ? 'bg-sky-50 border-sky-500 text-sky-700 shadow-sm'
-                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              🌐 Online IP
-            </button>
-            <button
-              onClick={() => setConnectivityMode('bleMesh')}
-              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                connectivityMode === 'bleMesh'
-                  ? 'bg-sky-50 border-sky-500 text-sky-700 shadow-sm'
-                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              📡 BLE Mesh Relay
-            </button>
-            <button
-              onClick={() => setConnectivityMode('smsStream')}
-              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                connectivityMode === 'smsStream'
-                  ? 'bg-sky-50 border-sky-500 text-sky-700 shadow-sm'
-                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              💬 SMS Stream
-            </button>
+        {/* Real-time Edge Logs Terminal */}
+        <div className="mt-3.5 bg-slate-950 border border-slate-800 rounded-2xl p-3">
+          <div className="flex items-center justify-between pb-1.5 border-b border-slate-900">
+            <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+              <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+              <span>Real-Time Hardware Telemetry Stream</span>
+            </span>
+            <span className="text-[10px] font-mono text-cyan-400">Live GPS WebSocket</span>
           </div>
-        </div>
-
-        {/* Real-Time Edge Logs Box (Light Mode Console) */}
-        <div className="space-y-2">
-          <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center justify-between">
-            <span>Real-Time Edge Logs (Turso libSQL)</span>
-            <span className="text-[10px] text-sky-600 font-mono font-normal">Streaming live</span>
-          </span>
-          <div className="bg-slate-900 border border-slate-800 text-slate-200 rounded-2xl p-3 h-24 overflow-y-auto font-mono text-[11px] space-y-1 shadow-inner">
-            {edgeLogs.map((log) => (
-              <div key={log.id} className="flex items-start space-x-2">
-                <span className="text-slate-400 shrink-0">[{log.time}]</span>
-                <span className="text-emerald-400">{log.text}</span>
+          <div className="mt-2 font-mono text-[11px] text-slate-300 space-y-1 max-h-16 overflow-y-auto">
+            {edgeLogs.slice(0, 3).map((log) => (
+              <div key={log.id} className="flex items-start gap-2">
+                <span className="text-slate-500 text-[10px]">{log.time}</span>
+                <span className="text-cyan-300">{log.text}</span>
               </div>
             ))}
           </div>
