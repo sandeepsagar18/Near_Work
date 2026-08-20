@@ -6,18 +6,27 @@ import crypto from 'crypto';
 export class TicketController {
   static async createTicket(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.id;
+      const userId = req.user?.id || req.user?.userId;
+      if (!userId) {
+        return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+          success: false,
+          message: 'User authentication required'
+        });
+      }
+
       const { bookingId, category, subject, description } = req.body;
-      const ticketNumber = `TKT-${Date.now()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+      const ticketNumber = `TKT-${Date.now().toString().slice(-6)}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+
+      const validBookingId = bookingId && typeof bookingId === 'string' && bookingId.trim().length === 24 ? bookingId.trim() : null;
 
       const ticket = await prisma.supportTicket.create({
         data: {
           ticketNumber,
           userId,
-          bookingId: bookingId || null,
-          category,
-          subject,
-          description
+          bookingId: validBookingId,
+          category: category || 'SERVICE',
+          subject: (subject || 'General Inquiry').trim(),
+          description: (description || 'No description provided').trim()
         }
       });
 
@@ -33,10 +42,26 @@ export class TicketController {
 
   static async getMyTickets(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.id;
+      const userId = req.user?.id || req.user?.userId;
+      if (!userId) {
+        return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+          success: false,
+          message: 'User authentication required'
+        });
+      }
+
       const tickets = await prisma.supportTicket.findMany({
         where: { userId },
-        include: { booking: true },
+        include: {
+          booking: {
+            select: {
+              id: true,
+              bookingNumber: true,
+              status: true,
+              service: { select: { name: true } }
+            }
+          }
+        },
         orderBy: { createdAt: 'desc' }
       });
       res.status(HTTP_STATUS.OK).json({ success: true, data: tickets });

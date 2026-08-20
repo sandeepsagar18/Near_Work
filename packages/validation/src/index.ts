@@ -99,8 +99,8 @@ export const createReviewSchema = z.object({
 
 // Support Ticket Schema
 export const createTicketSchema = z.object({
-  bookingId: z.string().optional(),
-  category: z.enum(['PAYMENT', 'WORKER', 'SERVICE', 'CANCELLATION', 'REFUND', 'OTHER']),
-  subject: z.string().min(5, 'Subject is required'),
-  description: z.string().min(10, 'Description must be at least 10 characters')
+  bookingId: z.string().nullish().or(z.literal('')),
+  category: z.string().default('SERVICE'),
+  subject: z.string().min(2, 'Subject must be at least 2 characters'),
+  description: z.string().min(3, 'Description must be at least 3 characters')
 });
