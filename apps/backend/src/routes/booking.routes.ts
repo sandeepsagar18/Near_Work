@@ -16,6 +16,9 @@ router.use(authenticateJwt);
 
 // Customer booking creation
 router.post('/', requireCustomer, validateRequest(createBookingSchema), BookingController.createBooking);
+// Customer & Worker tracking and route endpoints
+router.get('/:id/tracking', BookingController.getBookingTracking);
+router.get('/:id/route', BookingController.getBookingRoute);
 router.get('/:id', BookingController.getBookingById);
 router.post('/:id/cancel', BookingController.cancelBooking);
 

@@ -67,6 +67,113 @@ export class BookingController {
   }
 
   /**
+   * Dedicated tracking endpoint returning synchronized coordinates, destination, worker profile & status
+   */
+  static async getBookingTracking(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const booking = await prisma.booking.findUnique({
+        where: { id },
+        include: {
+          address: true,
+          customer: { select: { id: true, name: true, phone: true } },
+          worker: {
+            include: {
+              user: { select: { name: true, phone: true, avatarUrl: true } }
+            }
+          },
+          service: { select: { name: true, basePrice: true } }
+        }
+      });
+
+      if (!booking) {
+        res.status(HTTP_STATUS.NOT_FOUND).json({ success: false, message: 'Booking not found' });
+        return;
+      }
+
+      const isCustomer = booking.customerId === req.user!.id;
+      const isWorker = booking.worker?.userId === req.user!.id || booking.workerId === req.user!.workerId;
+      const isAdmin = req.user!.role === 'ADMIN';
+
+      if (!isCustomer && !isWorker && !isAdmin) {
+        res.status(HTTP_STATUS.FORBIDDEN).json({ success: false, message: 'Forbidden' });
+        return;
+      }
+
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        data: {
+          bookingId: booking.id,
+          bookingNumber: booking.bookingNumber,
+          status: booking.status,
+          serviceName: booking.service.name,
+          customerLocation: {
+            latitude: booking.address.latitude,
+            longitude: booking.address.longitude,
+            addressLine: booking.address.addressLine,
+            city: booking.address.city,
+            state: booking.address.state,
+            pincode: booking.address.pincode
+          },
+          workerLocation: booking.worker
+            ? {
+                latitude: booking.worker.currentLat,
+                longitude: booking.worker.currentLng,
+                status: booking.worker.status
+              }
+            : null,
+          worker: booking.worker
+            ? {
+                id: booking.worker.id,
+                name: booking.worker.user.name,
+                phone: booking.worker.user.phone,
+                avatarUrl: booking.worker.user.avatarUrl,
+                rating: booking.worker.averageRating
+              }
+            : null,
+          destination: {
+            addressLine: booking.address.addressLine,
+            city: booking.address.city,
+            state: booking.address.state,
+            pincode: booking.address.pincode
+          }
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Calculate live driving route, distance, and ETA
+   */
+  static async getBookingRoute(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const booking = await prisma.booking.findUnique({
+        where: { id },
+        include: { address: true, worker: true }
+      });
+
+      if (!booking || !booking.address) {
+        res.status(HTTP_STATUS.NOT_FOUND).json({ success: false, message: 'Booking or address not found' });
+        return;
+      }
+
+      const { RouteService } = await import('../services/route.service');
+      const originLat = booking.worker?.currentLat || booking.address.latitude - 0.015;
+      const originLng = booking.worker?.currentLng || booking.address.longitude - 0.015;
+      const destLat = booking.address.latitude;
+      const destLng = booking.address.longitude;
+
+      const route = await RouteService.calculateDrivingRoute(originLat, originLng, destLat, destLng);
+      res.status(HTTP_STATUS.OK).json({ success: true, data: route });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Worker accepts job
    */
   static async acceptJob(req: Request, res: Response, next: NextFunction) {

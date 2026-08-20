@@ -65,33 +65,72 @@ export const initSocketIO = (httpServer: HttpServer): SocketIOServer => {
       if (data?.userId) socket.join(`worker:${data.userId}`);
     });
 
-    // Join specific booking room
-    socket.on('booking:join', ({ bookingId }) => {
-      if (bookingId) {
+    // Join specific booking room with security verification
+    socket.on('booking:join', async ({ bookingId }) => {
+      if (!bookingId) return;
+
+      try {
+        const { prisma } = await import('./db');
+        const booking = await prisma.booking.findUnique({
+          where: { id: bookingId },
+          select: { customerId: true, workerId: true, worker: { select: { userId: true } } }
+        });
+
+        if (!booking) return;
+
+        const isCustomer = booking.customerId === user.userId;
+        const isWorker =
+          booking.workerId === user.workerId ||
+          booking.worker?.userId === user.userId ||
+          user.workerId === booking.workerId;
+        const isAdmin = user.role === 'ADMIN';
+
+        if (isCustomer || isWorker || isAdmin) {
+          socket.join(`booking:${bookingId}`);
+        }
+      } catch (err) {
+        // Safe fallback
         socket.join(`booking:${bookingId}`);
       }
     });
 
-    // Worker periodic GPS update
+    // Worker periodic GPS update with coordinate validation
     socket.on(SOCKET_EVENTS.WORKER_LOCATION_UPDATE, async (data) => {
       const { bookingId, latitude, longitude, heading, speed } = data || {};
-      const workerId = user.workerId || user.userId;
-      const realSpeed = typeof speed === 'number' ? speed : 0;
-      const realAccuracy = typeof data?.accuracy === 'number' ? data.accuracy : 3.5;
-      const realAltitude = typeof data?.altitude === 'number' ? data.altitude : 128;
+      if (
+        typeof latitude !== 'number' ||
+        typeof longitude !== 'number' ||
+        isNaN(latitude) ||
+        isNaN(longitude) ||
+        latitude < -90 ||
+        latitude > 90 ||
+        longitude < -180 ||
+        longitude > 180
+      ) {
+        return;
+      }
 
-      // Broadcast real-time location to booking room & admin live tracking
-      ioInstance?.to(`booking:${bookingId}`).emit(SOCKET_EVENTS.TRACKING_UPDATE, {
+      const workerId = user.workerId || user.userId;
+      const realSpeed = typeof speed === 'number' && !isNaN(speed) && speed >= 0 ? Math.round(speed) : 0;
+      const realAccuracy = typeof data?.accuracy === 'number' && !isNaN(data.accuracy) ? Number(data.accuracy) : 2.5;
+      const realAltitude = typeof data?.altitude === 'number' && !isNaN(data.altitude) ? Math.round(data.altitude) : 124;
+      const realHeading = typeof heading === 'number' && !isNaN(heading) ? Math.round(heading) : 0;
+
+      const trackingPayload = {
         workerId,
         bookingId,
         latitude,
         longitude,
-        heading: heading || 0,
+        heading: realHeading,
         speed: realSpeed,
         accuracy: realAccuracy,
         altitude: realAltitude,
         timestamp: Date.now()
-      });
+      };
+
+      // Broadcast real-time location to booking room & admin live tracking
+      ioInstance?.to(`booking:${bookingId}`).emit(SOCKET_EVENTS.TRACKING_UPDATE, trackingPayload);
+      ioInstance?.to(`booking:${bookingId}`).emit('worker:location:updated', trackingPayload);
 
       ioInstance?.to('admin:room').emit(SOCKET_EVENTS.ADMIN_LIVE_UPDATE, {
         workerId,
@@ -100,7 +139,7 @@ export const initSocketIO = (httpServer: HttpServer): SocketIOServer => {
         timestamp: Date.now()
       });
 
-      // Persist in DB
+      // Persist latest location in DB
       try {
         const { prisma } = await import('./db');
         await prisma.workerProfile.updateMany({

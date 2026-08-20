@@ -461,10 +461,14 @@ export const ActiveJobPage: React.FC = () => {
             {/* Live GPS Device Locator Map for Worker */}
             {job.address?.latitude && job.address?.longitude && !['CUSTOMER_CANCELLED', 'CANCELLED'].includes(job.status) && (
               <WorkerLiveNavigationMap
+                bookingId={job.id}
                 customerLat={job.address.latitude}
                 customerLng={job.address.longitude}
+                customerName={job.customer.name}
+                customerPhone={job.customer.phone}
                 customerAddress={`${job.address.addressLine}, ${job.address.city}`}
                 isEnRoute={isEnRoute}
+                onArrivedSuccess={fetchJob}
               />
             )}
 

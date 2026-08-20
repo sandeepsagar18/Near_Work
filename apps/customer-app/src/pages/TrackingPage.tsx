@@ -266,14 +266,25 @@ export const TrackingPage: React.FC = () => {
               </div>
 
               {booking.address && (
-                <div className="h-80 sm:h-96 md:h-[450px]">
+                <div className="min-h-[420px]">
                   <LiveTrackingMap
+                    bookingId={booking.id}
                     customerLat={booking.address.latitude}
                     customerLng={booking.address.longitude}
+                    customerAddress={booking.address.addressLine}
                     workerLat={workerLocation?.lat}
                     workerLng={workerLocation?.lng}
                     workerName={booking.worker?.user?.name}
+                    workerPhone={booking.worker?.user?.phone}
+                    workerRating={booking.worker?.averageRating}
+                    workerStatus={booking.status}
                     isEnRoute={isEnRoute}
+                    onCallWorker={() => {
+                      if (booking.worker?.user?.phone) {
+                        window.location.href = `tel:${booking.worker.user.phone}`;
+                      }
+                    }}
+                    onChatWorker={() => setIsChatOpen(true)}
                   />
                 </div>
               )}
