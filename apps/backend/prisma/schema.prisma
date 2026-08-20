@@ -301,8 +301,8 @@ model Payment {
   amount            Float
   currency          String        @default("INR")
   status            PaymentStatus @default(PAYMENT_PENDING)
-  razorpayOrderId   String?       @unique
-  razorpayPaymentId String?       @unique
+  razorpayOrderId   String?
+  razorpayPaymentId String?
   razorpaySignature String?
   paymentMethod     String?
   createdAt         DateTime      @default(now())
@@ -312,6 +312,7 @@ model Payment {
 
   @@index([userId])
   @@index([status])
+  @@index([razorpayOrderId])
 }
 
 model Refund {
@@ -323,7 +324,7 @@ model Refund {
   amount           Float
   status           PaymentStatus @default(REFUND_PENDING)
   reason           String?
-  razorpayRefundId String?       @unique
+  razorpayRefundId String?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 }
