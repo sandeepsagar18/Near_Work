@@ -29,11 +29,28 @@ export class AdminApiClient {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
-      headers
-    });
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-    return response.json();
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      const text = await response.text();
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { success: false, message: 'Invalid response from server' };
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        return { success: false, message: 'Connection timed out' };
+      }
+      return { success: false, message: 'Could not connect to backend server' };
+    }
   }
 }

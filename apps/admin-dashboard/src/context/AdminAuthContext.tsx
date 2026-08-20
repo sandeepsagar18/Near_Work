@@ -47,17 +47,21 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    const res = await AdminApiClient.request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password, role: 'ADMIN' })
-    });
+    try {
+      const res = await AdminApiClient.request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email: email.trim(), password: password.trim(), role: 'ADMIN' })
+      });
 
-    if (res.success && res.data?.tokens) {
-      AdminApiClient.setTokens(res.data.tokens.accessToken, res.data.tokens.refreshToken);
-      setAdmin(res.data.user);
-      return true;
+      if (res.success && res.data?.tokens) {
+        AdminApiClient.setTokens(res.data.tokens.accessToken, res.data.tokens.refreshToken);
+        setAdmin(res.data.user);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
