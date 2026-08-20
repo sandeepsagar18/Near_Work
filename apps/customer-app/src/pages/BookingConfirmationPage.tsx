@@ -155,27 +155,36 @@ export const BookingConfirmationPage: React.FC = () => {
       return;
     }
 
+    setIsSubmitting(true);
+    setPaymentError('');
+
     let activeAddress = selectedAddress;
 
     // Auto-fetch or create/persist default address if not set or if it's an ephemeral GPS ID
-    if (!activeAddress || String(activeAddress.id).startsWith('gps-live')) {
+    if (!activeAddress || !activeAddress.id || String(activeAddress.id).startsWith('gps-live')) {
       try {
-        const newAddrRes = await ApiClient.request('/customer/addresses', {
-          method: 'POST',
-          body: JSON.stringify({
-            label: activeAddress?.label || 'Live GPS Location',
-            addressLine: activeAddress?.addressLine || 'Hostel Road, Gorakhpur',
-            city: activeAddress?.city || 'Gorakhpur',
-            state: activeAddress?.state || 'Uttar Pradesh',
-            pincode: activeAddress?.pincode || '273001',
-            latitude: activeAddress?.latitude || 26.7606,
-            longitude: activeAddress?.longitude || 83.3732,
-            isDefault: true
-          })
-        });
-        if (newAddrRes.success && newAddrRes.data) {
-          activeAddress = newAddrRes.data;
+        const addrList = await ApiClient.request('/customer/addresses');
+        if (addrList.success && addrList.data && addrList.data.length > 0) {
+          activeAddress = addrList.data[0];
           setSelectedAddress(activeAddress);
+        } else {
+          const newAddrRes = await ApiClient.request('/customer/addresses', {
+            method: 'POST',
+            body: JSON.stringify({
+              label: 'Home',
+              addressLine: activeAddress?.addressLine || 'Hostel Road, Civil Lines',
+              city: activeAddress?.city || 'Gorakhpur',
+              state: activeAddress?.state || 'Uttar Pradesh',
+              pincode: activeAddress?.pincode || '273001',
+              latitude: activeAddress?.latitude || 26.7606,
+              longitude: activeAddress?.longitude || 83.3732,
+              isDefault: true
+            })
+          });
+          if (newAddrRes.success && newAddrRes.data) {
+            activeAddress = newAddrRes.data;
+            setSelectedAddress(activeAddress);
+          }
         }
       } catch (e) {
         console.error('Failed to persist address:', e);
@@ -183,12 +192,10 @@ export const BookingConfirmationPage: React.FC = () => {
     }
 
     if (!activeAddress?.id || String(activeAddress.id).startsWith('gps-live')) {
+      setIsSubmitting(false);
       setShowAddressModal(true);
       return;
     }
-
-    setIsSubmitting(true);
-    setPaymentError('');
 
     try {
       // 1. Create Booking in PAYMENT_PENDING state
