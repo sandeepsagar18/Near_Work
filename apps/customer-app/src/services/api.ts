@@ -39,7 +39,7 @@ export class ApiClient {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => controller.abort(), 25000);
 
       let response = await fetch(`${API_BASE}${endpoint}`, {
         ...options,

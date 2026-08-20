@@ -31,7 +31,7 @@ export class AdminApiClient {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => controller.abort(), 25000);
 
       const response = await fetch(`${API_BASE}${endpoint}`, {
         ...options,
