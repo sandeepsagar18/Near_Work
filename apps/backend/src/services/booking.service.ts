@@ -252,6 +252,13 @@ export class BookingService {
       io.to(`booking:${bookingId}`).emit(SOCKET_EVENTS.BOOKING_ACCEPTED, payload);
       io.to(`customer:${result.customerId}`).emit(SOCKET_EVENTS.BOOKING_ACCEPTED, payload);
       io.to(`user:${result.customerId}`).emit(SOCKET_EVENTS.BOOKING_ACCEPTED, payload);
+
+      // Dismiss popup for all other candidate workers
+      io.to('workers:all').emit('booking:taken', {
+        bookingId,
+        takenByWorkerId: worker.id,
+        takenByName: worker.user.name
+      });
     }
 
     return result;

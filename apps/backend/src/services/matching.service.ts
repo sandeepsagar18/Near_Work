@@ -172,43 +172,59 @@ export class MatchingService {
       return false;
     }
 
-    const candidate = availableCandidates[0];
-
-    // Atomically assign candidate worker
-    await prisma.$transaction(async (tx: any) => {
-      await tx.booking.update({
-        where: { id: bookingId },
-        data: {
-          workerId: candidate.workerId,
-          status: BookingStatus.WORKER_ASSIGNED,
-          assignedAt: new Date()
-        }
-      });
-
-      await tx.bookingStatusHistory.create({
-        data: {
-          bookingId,
-          status: BookingStatus.WORKER_ASSIGNED,
-          note: `Assigned to worker ${candidate.name} (${candidate.distanceKm} km away)`
-        }
-      });
+    // Keep status SEARCHING_WORKER so any of the dispatched workers can claim it (First-To-Accept Wins)
+    await prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        status: BookingStatus.SEARCHING_WORKER,
+        workerId: null
+      }
     });
 
-    // Create in-app Notification record
-    await prisma.notification.create({
-      data: {
-        userId: candidate.userId,
-        title: '⚡ New Service Job Dispatch!',
-        message: `New booking for ${booking.service.name} in ${booking.address.city}. You have 60 seconds to accept.`,
-        type: 'JOB_ASSIGNMENT',
-        data: JSON.stringify({ link: `/job/${booking.id}` })
-      }
-    }).catch(() => {});
-
-    // Notify worker via Socket.IO across all targeted rooms
+    // Broadcast to ALL available online candidate workers simultaneously
     const io = getSocketIO();
-    if (io) {
-      const alertPayload = {
+    for (const candidate of availableCandidates) {
+      // Create in-app Notification record
+      prisma.notification.create({
+        data: {
+          userId: candidate.userId,
+          title: '⚡ New Service Job Available!',
+          message: `New booking for ${booking.service.name} in ${booking.address.city}. Quickest to accept gets the job!`,
+          type: 'JOB_ASSIGNMENT',
+          data: JSON.stringify({ link: `/job/${booking.id}` })
+        }
+      }).catch(() => {});
+
+      if (io) {
+        const alertPayload = {
+          bookingId: booking.id,
+          bookingNumber: booking.bookingNumber,
+          serviceName: booking.service.name,
+          customerName: booking.customer.name,
+          scheduledDate: booking.scheduledDate,
+          scheduledTimeSlot: booking.scheduledTimeSlot,
+          address: `${booking.address.addressLine}, ${booking.address.city}`,
+          distanceKm: candidate.distanceKm,
+          estimatedEarnings: Math.round(booking.totalAmount * 0.8), // 80% to worker
+          expiresInSeconds: APP_CONFIG.jobAcceptanceTimeoutSeconds
+        };
+
+        io.to([
+          `worker:${candidate.workerId}`,
+          `worker:${candidate.userId}`,
+          `user:${candidate.userId}`
+        ]).emit(SOCKET_EVENTS.BOOKING_ASSIGNED, alertPayload);
+
+        io.to([
+          `worker:${candidate.workerId}`,
+          `worker:${candidate.userId}`,
+          `user:${candidate.userId}`
+        ]).emit('booking:dispatch', alertPayload);
+      }
+    }
+
+    if (io && availableCandidates.length > 0) {
+      const genericPayload = {
         bookingId: booking.id,
         bookingNumber: booking.bookingNumber,
         serviceName: booking.service.name,
@@ -216,37 +232,12 @@ export class MatchingService {
         scheduledDate: booking.scheduledDate,
         scheduledTimeSlot: booking.scheduledTimeSlot,
         address: `${booking.address.addressLine}, ${booking.address.city}`,
-        distanceKm: candidate.distanceKm,
-        estimatedEarnings: Math.round(booking.totalAmount * 0.8), // 80% to worker
+        distanceKm: availableCandidates[0].distanceKm,
+        estimatedEarnings: Math.round(booking.totalAmount * 0.8),
         expiresInSeconds: APP_CONFIG.jobAcceptanceTimeoutSeconds
       };
-
-      io.to([
-        `worker:${candidate.workerId}`,
-        `worker:${candidate.userId}`,
-        `user:${candidate.userId}`,
-        'workers:all'
-      ]).emit(SOCKET_EVENTS.BOOKING_ASSIGNED, alertPayload);
+      io.to('workers:all').emit('booking:dispatch', genericPayload);
     }
-
-    // Set 60-second waterfall timeout: if not accepted, reallocate to next worker
-    setTimeout(async () => {
-      try {
-        const currentBooking = await prisma.booking.findUnique({
-          where: { id: bookingId }
-        });
-        if (
-          currentBooking &&
-          currentBooking.status === BookingStatus.WORKER_ASSIGNED &&
-          currentBooking.workerId === candidate.workerId
-        ) {
-          const { BookingService } = await import('./booking.service');
-          await BookingService.rejectJob(candidate.workerId, bookingId);
-        }
-      } catch (err) {
-        console.error('Error handling worker response timeout:', err);
-      }
-    }, APP_CONFIG.jobAcceptanceTimeoutSeconds * 1000);
 
     return true;
   }

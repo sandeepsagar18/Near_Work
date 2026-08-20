@@ -188,10 +188,20 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setActiveJobAlert((prev: any) => (prev?.bookingId === data.bookingId ? null : prev));
       };
 
+      const handleJobTaken = (data: any) => {
+        setActiveJobAlert((prev: any) => {
+          if (prev?.bookingId === data.bookingId && data.takenByWorkerId !== worker.workerProfile?.id) {
+            return null;
+          }
+          return prev;
+        });
+      };
+
       socket.on(SOCKET_EVENTS.BOOKING_ASSIGNED, handleJobAssigned);
       socket.on('booking:dispatch', handleJobAssigned);
       socket.on('booking:new', handleJobAssigned);
       socket.on(SOCKET_EVENTS.BOOKING_CANCELLED, handleJobCancelled);
+      socket.on('booking:taken', handleJobTaken);
 
       return () => {
         if (watchId !== null && 'geolocation' in navigator) {
@@ -202,6 +212,7 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         socket.off('booking:dispatch', handleJobAssigned);
         socket.off('booking:new', handleJobAssigned);
         socket.off(SOCKET_EVENTS.BOOKING_CANCELLED, handleJobCancelled);
+        socket.off('booking:taken', handleJobTaken);
       };
     }
   }, [worker]);
