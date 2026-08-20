@@ -193,60 +193,6 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       socket.on('booking:new', handleJobAssigned);
       socket.on(SOCKET_EVENTS.BOOKING_CANCELLED, handleJobCancelled);
 
-      // Fast 2s fallback poller for both WORKER_ASSIGNED and SEARCHING_WORKER
-      const pollTimer = setInterval(async () => {
-        // If worker is OFFLINE / INACTIVE, do not poll or alert!
-        if (worker.workerProfile?.status !== WorkerStatus.ONLINE) {
-          return;
-        }
-        if (!activeJobAlertRef.current) {
-          try {
-            const res = await WorkerApiClient.request('/worker/jobs');
-            if (res.success && res.data && res.data.length > 0) {
-              const pendingJob = res.data.find(
-                (j: any) =>
-                  (j.status === 'WORKER_ASSIGNED' || j.status === 'SEARCHING_WORKER') &&
-                  (declinedCountsRef.current[j.id] || 0) < 2
-              );
-              if (pendingJob && !activeJobAlertRef.current) {
-                const wLat = worker?.workerProfile?.currentLat || 26.7606;
-                const wLng = worker?.workerProfile?.currentLng || 83.3732;
-                const cLat = pendingJob.address?.latitude || 26.7606;
-                const cLng = pendingJob.address?.longitude || 83.3732;
-
-                // Haversine calculation for exact real distance
-                const R = 6371;
-                const dLat = ((cLat - wLat) * Math.PI) / 180;
-                const dLon = ((cLng - wLng) * Math.PI) / 180;
-                const a =
-                  Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                  Math.cos((wLat * Math.PI) / 180) *
-                    Math.cos((cLat * Math.PI) / 180) *
-                    Math.sin(dLon / 2) *
-                    Math.sin(dLon / 2);
-                const computedDist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                const realDist = computedDist <= 0.15 ? 0 : Math.round(computedDist * 10) / 10;
-
-                setActiveJobAlert({
-                  bookingId: pendingJob.id,
-                  bookingNumber: pendingJob.bookingNumber,
-                  serviceName: pendingJob.service?.name,
-                  customerName: pendingJob.customer?.name,
-                  scheduledDate: pendingJob.scheduledDate,
-                  scheduledTimeSlot: pendingJob.scheduledTimeSlot,
-                  address: `${pendingJob.address?.addressLine}, ${pendingJob.address?.city}`,
-                  distanceKm: realDist,
-                  estimatedEarnings: Math.round(pendingJob.totalAmount * 0.8),
-                  expiresInSeconds: 60
-                });
-              }
-            }
-          } catch (err) {
-            // Ignore polling glitches
-          }
-        }
-      }, 2000);
-
       return () => {
         if (watchId !== null && 'geolocation' in navigator) {
           navigator.geolocation.clearWatch(watchId);
@@ -256,7 +202,6 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         socket.off('booking:dispatch', handleJobAssigned);
         socket.off('booking:new', handleJobAssigned);
         socket.off(SOCKET_EVENTS.BOOKING_CANCELLED, handleJobCancelled);
-        clearInterval(pollTimer);
       };
     }
   }, [worker]);

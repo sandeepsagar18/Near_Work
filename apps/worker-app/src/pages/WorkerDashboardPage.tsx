@@ -143,7 +143,8 @@ export const WorkerDashboardPage: React.FC = () => {
   const pendingAssignmentJob = isOnline
     ? jobs.find(
         (j) =>
-          (j.status === 'WORKER_ASSIGNED' || j.status === 'SEARCHING_WORKER') &&
+          j.status === 'WORKER_ASSIGNED' &&
+          (j.workerId === worker.workerProfile.id || j.worker?.userId === worker.id) &&
           getDeclineCount(j.id) < 2
       )
     : null;
