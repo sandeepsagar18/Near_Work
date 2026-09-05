@@ -180,7 +180,7 @@ export const Header: React.FC = () => {
               ) : (
                 <button
                   onClick={() => navigate('/auth')}
-                  className="px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-md shadow-indigo-600/20 flex items-center space-x-1.5 transition-transform active:scale-95 cursor-pointer whitespace-nowrap flex-shrink-0"
+                  className="hidden sm:flex px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-md shadow-indigo-600/20 items-center space-x-1.5 transition-transform active:scale-95 cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   <LogIn className="w-3.5 h-3.5" />
                   <span>{t('nav.login', 'Sign In')}</span>
