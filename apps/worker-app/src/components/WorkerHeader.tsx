@@ -131,51 +131,54 @@ export const WorkerHeader: React.FC = () => {
 
           <WorkerLanguageToggle />
 
-          <NavLink
-            to="/services"
-            className={({ isActive }) =>
-              `hidden sm:flex px-3 py-1.5 rounded-2xl items-center space-x-1.5 text-xs font-bold transition-colors border cursor-pointer ${
-                isActive
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
-              }`
-            }
-            title="Services Performance & History"
-          >
-            <Wrench className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Services</span>
-          </NavLink>
+          {/* Desktop / Tablet Extra Navigation & Actions (Hidden on Mobile) */}
+          <div className="hidden md:flex items-center space-x-2 sm:space-x-3">
+            <NavLink
+              to="/services"
+              className={({ isActive }) =>
+                `px-3 py-1.5 rounded-2xl items-center space-x-1.5 text-xs font-bold transition-colors border cursor-pointer ${
+                  isActive
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                }`
+              }
+              title="Services Performance & History"
+            >
+              <Wrench className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Services</span>
+            </NavLink>
 
-          <button
-            onClick={() => navigate('/earnings')}
-            className="hidden sm:flex px-3 py-1.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-emerald-700 items-center space-x-1.5 transition-colors border border-slate-200 cursor-pointer"
-            title="Wallet"
-          >
-            <Wallet className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="text-xs font-black">₹{worker?.workerProfile?.availableBalance || 0}</span>
-          </button>
+            <button
+              onClick={() => navigate('/earnings')}
+              className="px-3 py-1.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-emerald-700 items-center space-x-1.5 transition-colors border border-slate-200 cursor-pointer"
+              title="Wallet"
+            >
+              <Wallet className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="text-xs font-black">₹{worker?.workerProfile?.availableBalance || 0}</span>
+            </button>
 
-          {/* Mode Toggle Button in Navbar */}
-          <button
-            onClick={toggleOnlineStatus}
-            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-black flex items-center space-x-1.5 transition-all shadow-sm cursor-pointer ${
-              isOnline
-                ? 'bg-emerald-600 text-white shadow-emerald-500/20 ring-2 ring-emerald-500/30 hover:bg-emerald-500'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300'
-            }`}
-            title={isOnline ? 'Click to go Offline (Duty Off)' : 'Click to go Online (Duty On)'}
-          >
-            <Power className="w-3.5 h-3.5" />
-            <span>{isOnline ? t('worker.status_online', 'ONLINE') : t('worker.status_offline', 'OFFLINE')}</span>
-          </button>
+            {/* Mode Toggle Button in Navbar */}
+            <button
+              onClick={toggleOnlineStatus}
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-black flex items-center space-x-1.5 transition-all shadow-sm cursor-pointer ${
+                isOnline
+                  ? 'bg-emerald-600 text-white shadow-emerald-500/20 ring-2 ring-emerald-500/30 hover:bg-emerald-500'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300'
+              }`}
+              title={isOnline ? 'Click to go Offline (Duty Off)' : 'Click to go Online (Duty On)'}
+            >
+              <Power className="w-3.5 h-3.5" />
+              <span>{isOnline ? t('worker.status_online', 'ONLINE') : t('worker.status_offline', 'OFFLINE')}</span>
+            </button>
 
-          <button
-            onClick={logout}
-            className="p-2 rounded-2xl bg-slate-100 text-slate-600 hover:text-red-600 hover:bg-red-50 transition-colors border border-slate-200 cursor-pointer"
-            title={t('worker.logout', 'Logout')}
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+            <button
+              onClick={logout}
+              className="p-2 rounded-2xl bg-slate-100 text-slate-600 hover:text-red-600 hover:bg-red-50 transition-colors border border-slate-200 cursor-pointer"
+              title={t('worker.logout', 'Logout')}
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     </header>

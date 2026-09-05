@@ -7,6 +7,7 @@ import { ActiveJobPage } from './pages/ActiveJobPage';
 import { WorkerEarningsPage } from './pages/WorkerEarningsPage';
 import { WorkerServicesPage } from './pages/WorkerServicesPage';
 import { WorkerAuthPage } from './pages/WorkerAuthPage';
+import { WorkerProfilePage } from './pages/WorkerProfilePage';
 import { JobRequestAlert } from './components/JobRequestAlert';
 import { WorkerGlobalNotification } from './components/WorkerGlobalNotification';
 import { WorkerBottomNav } from './components/WorkerBottomNav';
@@ -36,6 +37,7 @@ export function App() {
             <Route path="/job/:id" element={<ActiveJobPage />} />
             <Route path="/services" element={<WorkerServicesPage />} />
             <Route path="/earnings" element={<WorkerEarningsPage />} />
+            <Route path="/profile" element={<WorkerProfilePage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
