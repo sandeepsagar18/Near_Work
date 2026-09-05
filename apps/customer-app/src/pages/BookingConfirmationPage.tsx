@@ -99,9 +99,9 @@ export const BookingConfirmationPage: React.FC = () => {
     return null;
   }
 
-  const basePrice = state.basePrice || 499;
+  const basePrice = Number(state.basePrice) || 499;
   const visitCharge = 50;
-  const discount = appliedCoupon ? appliedCoupon.discount : 0;
+  const discount = Number(appliedCoupon?.discount) || 0;
   const subtotal = Math.max(50, basePrice + visitCharge - discount);
   const tax = Math.round((subtotal * 18) / 100);
   const totalAmount = subtotal + tax;

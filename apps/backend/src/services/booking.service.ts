@@ -54,21 +54,21 @@ export class BookingService {
     }
 
     // Pricing calculation
-    const basePrice = service.basePrice;
-    const visitCharge = APP_CONFIG.visitCharge;
+    const basePrice = Number(service.basePrice);
+    const visitCharge = Number(APP_CONFIG.visitCharge);
     let discountAmount = 0;
 
     // Coupon verification
     if (coupon) {
       if (coupon.isActive && (!coupon.expiresAt || coupon.expiresAt > new Date())) {
-        if (coupon.usedCount < coupon.usageLimit && basePrice >= coupon.minOrderValue) {
+        if (coupon.usedCount < coupon.usageLimit && basePrice >= Number(coupon.minOrderValue)) {
           if (coupon.discountType === 'PERCENTAGE') {
-            discountAmount = (basePrice * coupon.discountValue) / 100;
-            if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
-              discountAmount = coupon.maxDiscount;
+            discountAmount = (basePrice * Number(coupon.discountValue)) / 100;
+            if (coupon.maxDiscount && discountAmount > Number(coupon.maxDiscount)) {
+              discountAmount = Number(coupon.maxDiscount);
             }
           } else {
-            discountAmount = coupon.discountValue;
+            discountAmount = Number(coupon.discountValue);
           }
         }
       }
@@ -545,7 +545,7 @@ export class BookingService {
     const resolvedWorkerProfileId = booking.workerId!;
 
     // Financial settlements
-    const finalTotal = booking.totalAmount + (booking.extraChargeApproved ? booking.extraChargeAmount : 0);
+    const finalTotal = Number(booking.totalAmount) + (booking.extraChargeApproved ? Number(booking.extraChargeAmount) : 0);
     const platformCommission = Math.round((finalTotal * APP_CONFIG.platformCommissionPercent) / 100);
     const netWorkerEarning = finalTotal - platformCommission;
 

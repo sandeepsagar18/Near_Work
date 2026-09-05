@@ -233,7 +233,7 @@ export class MatchingService {
           scheduledTimeSlot: booking.scheduledTimeSlot,
           address: `${booking.address.addressLine}, ${booking.address.city}`,
           distanceKm: candidate.distanceKm,
-          estimatedEarnings: Math.round(booking.totalAmount * 0.8), // 80% to worker
+          estimatedEarnings: Math.round(Number(booking.totalAmount) * 0.8), // 80% to worker
           expiresInSeconds: APP_CONFIG.jobAcceptanceTimeoutSeconds
         };
 
@@ -323,7 +323,7 @@ export class MatchingService {
           scheduledTimeSlot: booking.scheduledTimeSlot,
           address: `${booking.address.addressLine}, ${booking.address.city}`,
           distanceKm,
-          estimatedEarnings: Math.round(booking.totalAmount * 0.8),
+          estimatedEarnings: Math.round(Number(booking.totalAmount) * 0.8),
           expiresInSeconds: APP_CONFIG.jobAcceptanceTimeoutSeconds
         };
 

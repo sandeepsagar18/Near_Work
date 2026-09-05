@@ -89,7 +89,7 @@ export class EarningService {
       throw err;
     }
 
-    if (amount <= 0 || amount > worker.availableBalance) {
+    if (amount <= 0 || amount > Number(worker.availableBalance)) {
       const err: AppError = new Error(
         `Insufficient available balance. Requested: ₹${amount}, Available: ₹${worker.availableBalance}`
       );

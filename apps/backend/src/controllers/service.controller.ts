@@ -98,7 +98,11 @@ export class ServiceController {
         success: true,
         data: {
           ...service,
-          inclusionsList: JSON.parse(service.inclusions || '[]'),
+          inclusionsList: Array.isArray(service.inclusions) 
+            ? service.inclusions 
+            : typeof service.inclusions === 'string' 
+            ? JSON.parse(service.inclusions || '[]') 
+            : [],
           availableSlots
         }
       });

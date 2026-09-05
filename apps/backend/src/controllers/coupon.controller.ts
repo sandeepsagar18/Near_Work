@@ -84,7 +84,7 @@ export class CouponController {
         return;
       }
 
-      if (amount < coupon.minOrderValue) {
+      if (amount < Number(coupon.minOrderValue)) {
         res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
           valid: false,
@@ -95,12 +95,12 @@ export class CouponController {
 
       let discountAmount = 0;
       if (coupon.discountType === 'PERCENTAGE') {
-        discountAmount = (amount * coupon.discountValue) / 100;
-        if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
-          discountAmount = coupon.maxDiscount;
+        discountAmount = (amount * Number(coupon.discountValue)) / 100;
+        if (coupon.maxDiscount && discountAmount > Number(coupon.maxDiscount)) {
+          discountAmount = Number(coupon.maxDiscount);
         }
       } else {
-        discountAmount = coupon.discountValue;
+        discountAmount = Number(coupon.discountValue);
       }
 
       discountAmount = Math.min(amount, Math.round(discountAmount));

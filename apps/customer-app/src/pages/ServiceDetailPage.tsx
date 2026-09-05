@@ -273,7 +273,7 @@ export const ServiceDetailPage: React.FC = () => {
               <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] text-gray-400 uppercase font-semibold block">{t('service.total_estimated', 'Total Estimated')}</span>
-                  <span className="text-2xl font-black text-gray-900">₹{service.basePrice + 50}</span>
+                  <span className="text-2xl font-black text-gray-900">₹{Number(service.basePrice) + 50}</span>
                 </div>
 
                 <button
@@ -293,7 +293,7 @@ export const ServiceDetailPage: React.FC = () => {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-gray-200 lg:hidden z-30 flex items-center justify-between shadow-2xl">
         <div>
           <span className="text-[10px] text-gray-400 uppercase font-semibold block">{t('service.total_estimated', 'Total Estimated')}</span>
-          <span className="text-xl font-black text-gray-900">₹{service.basePrice + 50}</span>
+          <span className="text-xl font-black text-gray-900">₹{Number(service.basePrice) + 50}</span>
         </div>
         <button
           onClick={handleProceed}

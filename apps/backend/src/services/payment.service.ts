@@ -21,7 +21,7 @@ export class PaymentService {
       throw err;
     }
 
-    const amountInPaise = Math.round(booking.totalAmount * 100);
+    const amountInPaise = Math.round(Number(booking.totalAmount) * 100);
     const receipt = `rcpt_${booking.bookingNumber}`;
 
     // Generate Razorpay order ID (with sandbox fallback support)
