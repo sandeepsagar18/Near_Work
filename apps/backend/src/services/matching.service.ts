@@ -237,12 +237,16 @@ export class MatchingService {
           expiresInSeconds: APP_CONFIG.jobAcceptanceTimeoutSeconds
         };
 
-        io.to([
+        const targetRooms = [
           `worker:${candidate.workerId}`,
           `worker:${candidate.userId}`,
-          `user:${candidate.userId}`
-        ]).emit(SOCKET_EVENTS.BOOKING_ASSIGNED, alertPayload);
+          `user:${candidate.userId}`,
+          'workers:all'
+        ];
 
+        io.to(targetRooms).emit(SOCKET_EVENTS.BOOKING_ASSIGNED, alertPayload);
+        io.to(targetRooms).emit('booking:dispatch', alertPayload);
+        io.to(targetRooms).emit('booking:new', alertPayload);
       }
     }
 

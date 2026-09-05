@@ -33,6 +33,18 @@ export const WorkerDashboardPage: React.FC = () => {
   const [isProcessingAction, setIsProcessingAction] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<'ALL' | 'TODAY' | 'WEEK' | 'MONTH'>('ALL');
 
+  const getDeclineCount = (bookingId: string) => {
+    try {
+      const saved = sessionStorage.getItem('nw_declined_counts');
+      const map = saved ? JSON.parse(saved) : {};
+      return map[bookingId] || 0;
+    } catch {
+      return 0;
+    }
+  };
+
+  const isOnline = worker?.workerProfile?.status === 'ONLINE';
+
   const fetchData = async () => {
     try {
       const [jobsRes, earnRes] = await Promise.all([
@@ -40,7 +52,32 @@ export const WorkerDashboardPage: React.FC = () => {
         WorkerApiClient.request('/worker/earnings')
       ]);
 
-      if (jobsRes.success) setJobs(jobsRes.data || []);
+      if (jobsRes.success && jobsRes.data) {
+        setJobs(jobsRes.data);
+
+        // If online and not already viewing an alert, surface any available incoming job
+        const incoming = jobsRes.data.find(
+          (j: any) =>
+            (j.status === 'SEARCHING_WORKER' || j.status === 'WORKER_ASSIGNED') &&
+            (!j.workerId || j.workerId === worker?.workerProfile?.id || j.worker?.userId === worker?.id) &&
+            getDeclineCount(j.id) < 2
+        );
+
+        if (incoming && !activeJobAlert && isOnline) {
+          setActiveJobAlert({
+            bookingId: incoming.id,
+            bookingNumber: incoming.bookingNumber,
+            serviceName: incoming.service?.name || 'Service Job',
+            customerName: incoming.customer?.name || 'Customer',
+            scheduledDate: incoming.scheduledDate,
+            scheduledTimeSlot: incoming.scheduledTimeSlot,
+            address: `${incoming.address?.addressLine || ''}, ${incoming.address?.city || ''}`,
+            distanceKm: 2.5,
+            estimatedEarnings: Math.round(Number(incoming.totalAmount) * 0.8),
+            expiresInSeconds: 60
+          });
+        }
+      }
       if (earnRes.success) setEarningsData(earnRes.data || null);
     } catch (e) {
       console.error(e);
@@ -52,9 +89,9 @@ export const WorkerDashboardPage: React.FC = () => {
   useEffect(() => {
     if (worker) {
       fetchData();
-      const interval = setInterval(fetchData, 4000);
+      const interval = setInterval(fetchData, 3000);
 
-      // Automatically sync real device/PC browser GPS to Turso
+      // Automatically sync real device/PC browser GPS to backend
       if ('geolocation' in navigator) {
         navigator.geolocation.getCurrentPosition(
           async (position) => {
@@ -127,23 +164,11 @@ export const WorkerDashboardPage: React.FC = () => {
     return null;
   }
 
-  const getDeclineCount = (bookingId: string) => {
-    try {
-      const saved = sessionStorage.getItem('nw_declined_counts');
-      const map = saved ? JSON.parse(saved) : {};
-      return map[bookingId] || 0;
-    } catch {
-      return 0;
-    }
-  };
-
-  const isOnline = worker.workerProfile.status === 'ONLINE';
-
   const pendingAssignmentJob = isOnline
     ? jobs.find(
         (j) =>
-          j.status === 'WORKER_ASSIGNED' &&
-          (j.workerId === worker.workerProfile.id || j.worker?.userId === worker.id) &&
+          (j.status === 'WORKER_ASSIGNED' || j.status === 'SEARCHING_WORKER') &&
+          (!j.workerId || j.workerId === worker.workerProfile.id || j.worker?.userId === worker.id) &&
           getDeclineCount(j.id) < 2
       )
     : null;
