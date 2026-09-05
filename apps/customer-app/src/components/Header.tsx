@@ -104,53 +104,53 @@ export const Header: React.FC = () => {
               </NavLink>
             </nav>
 
-            {/* Right Actions: Language Switcher & Profile */}
-            <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Right Actions: Language Switcher, Location & Sign In / User Profile */}
+            <div className="flex items-center space-x-1.5 sm:space-x-3 flex-shrink-0">
               {/* Language Switcher */}
               <LanguageToggle />
 
-              {/* Mobile Location Clicker */}
-              <div
+              {/* Mobile Location Badge (Compact) */}
+              <button
                 onClick={() => setShowAddressModal(true)}
-                className="flex sm:hidden items-center space-x-1 cursor-pointer bg-gray-50 px-2 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-800"
+                className="flex sm:hidden items-center space-x-1 p-1.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors"
+                title="Change Location"
               >
                 <MapPin className="w-3.5 h-3.5 text-indigo-600" />
-                <span className="truncate max-w-[90px]">
-                  {selectedAddress ? selectedAddress.city : 'Gorakhpur'}
+                <span className="text-[11px] font-bold truncate max-w-[60px]">
+                  {selectedAddress ? selectedAddress.city : 'Location'}
                 </span>
-                <ChevronDown className="w-3 h-3 text-gray-400" />
-              </div>
+              </button>
 
               {user ? (
-                <div className="relative">
+                <div className="relative flex-shrink-0">
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center space-x-2 p-1.5 rounded-2xl hover:bg-gray-100 transition-colors"
+                    className="flex items-center space-x-1.5 p-1 sm:p-1.5 rounded-2xl hover:bg-gray-100 transition-colors cursor-pointer"
                   >
-                    <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 font-black text-sm flex items-center justify-center">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-600 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow-md shadow-indigo-600/20">
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                     <span className="hidden sm:inline text-xs font-bold text-gray-800">
                       {user.name.split(' ')[0]}
                     </span>
-                    <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                    <ChevronDown className="w-3 h-3 text-gray-400" />
                   </button>
 
                   {/* Dropdown */}
                   {showUserMenu && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in">
+                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 animate-in fade-in">
                       <div className="px-4 py-2 border-b border-gray-50">
-                        <p className="font-bold text-xs text-gray-900">{user.name}</p>
-                        <p className="text-[10px] text-gray-500">{user.email}</p>
+                        <p className="font-bold text-xs text-gray-900 truncate">{user.name}</p>
+                        <p className="text-[10px] text-gray-500 truncate">{user.email || user.phone}</p>
                       </div>
                       <button
                         onClick={() => {
                           setShowUserMenu(false);
                           navigate('/bookings');
                         }}
-                        className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center space-x-2"
+                        className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center space-x-2 transition-colors cursor-pointer"
                       >
-                        <Calendar className="w-4 h-4" />
+                        <Calendar className="w-4 h-4 text-indigo-600" />
                         <span>{t('nav.bookings', 'My Bookings')}</span>
                       </button>
                       <button
@@ -158,10 +158,10 @@ export const Header: React.FC = () => {
                           setShowUserMenu(false);
                           navigate('/support');
                         }}
-                        className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center space-x-2"
+                        className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center space-x-2 transition-colors cursor-pointer"
                       >
-                        <Headphones className="w-4 h-4" />
-                        <span>24/7 Support</span>
+                        <Headphones className="w-4 h-4 text-indigo-600" />
+                        <span>24/7 Customer Support</span>
                       </button>
                       <button
                         onClick={() => {
@@ -169,7 +169,7 @@ export const Header: React.FC = () => {
                           logout();
                           navigate('/auth');
                         }}
-                        className="w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center space-x-2 border-t border-gray-50 mt-1"
+                        className="w-full text-left px-4 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center space-x-2 border-t border-gray-50 mt-1 transition-colors cursor-pointer"
                       >
                         <LogOut className="w-4 h-4" />
                         <span>{t('nav.logout', 'Sign Out')}</span>
@@ -180,7 +180,7 @@ export const Header: React.FC = () => {
               ) : (
                 <button
                   onClick={() => navigate('/auth')}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-600/20 flex items-center space-x-1.5 transition-transform active:scale-95 cursor-pointer"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-md shadow-indigo-600/20 flex items-center space-x-1.5 transition-transform active:scale-95 cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   <LogIn className="w-3.5 h-3.5" />
                   <span>{t('nav.login', 'Sign In')}</span>

@@ -131,11 +131,12 @@ export const GlobalNotificationToast: React.FC = () => {
     // 7. Service Completed
     const handleServiceCompleted = (data: any) => {
       playSound('fanfare');
+      speakVoice(`Your service for ${data.serviceName || 'NearWork'} has been completed successfully!`);
       setToast({
         id: String(Date.now()),
         type: 'COMPLETED',
-        title: '🎉 Service Completed!',
-        message: `Your service is completed (Total: ₹${data.totalAmount}). Tap to view summary and rate.`,
+        title: '🎉 Service Completed Successfully!',
+        message: `Your service is finished (Total: ₹${data.totalAmount}). Tap here to view the final summary and rate your technician.`,
         bookingId: data.bookingId,
         workerName: data.workerName
       });
@@ -218,11 +219,12 @@ export const GlobalNotificationToast: React.FC = () => {
                 });
               } else if (curr === 'COMPLETED') {
                 playSound('fanfare');
+                speakVoice('Your service has been completed successfully!');
                 setToast({
                   id: String(Date.now()),
                   type: 'COMPLETED',
-                  title: '🎉 Service Completed!',
-                  message: `Your service is completed (Total: ₹${b.totalAmount}). Tap to rate.`,
+                  title: '🎉 Service Completed Successfully!',
+                  message: `Your service is finished (Total: ₹${b.totalAmount}). Tap to rate your technician.`,
                   bookingId: b.id,
                   workerName
                 });
