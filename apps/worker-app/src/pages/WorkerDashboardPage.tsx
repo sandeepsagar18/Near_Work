@@ -229,6 +229,65 @@ export const WorkerDashboardPage: React.FC = () => {
 
 
 
+        {/* Quick Stats Overview Grid for Mobile & Tablets */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <div
+            onClick={() => navigate('/earnings')}
+            className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-sm cursor-pointer hover:border-emerald-300 transition-all group"
+          >
+            <div className="flex justify-between items-center text-slate-500 mb-2">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Wallet Balance</span>
+              <Wallet className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
+            </div>
+            <span className="text-xl sm:text-2xl font-black text-emerald-600 block">
+              ₹{worker?.workerProfile?.availableBalance || 0}
+            </span>
+            <span className="text-[10px] text-slate-400 font-semibold">Tap to withdraw</span>
+          </div>
+
+          <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-sm">
+            <div className="flex justify-between items-center text-slate-500 mb-2">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Jobs Done</span>
+              <CheckCircle2 className="w-4 h-4 text-indigo-600" />
+            </div>
+            <span className="text-xl sm:text-2xl font-black text-slate-900 block">
+              {completedJobs.length || worker?.workerProfile?.totalJobsCompleted || 0}
+            </span>
+            <span className="text-[10px] text-emerald-600 font-bold">100% On-Time</span>
+          </div>
+
+          <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-sm">
+            <div className="flex justify-between items-center text-slate-500 mb-2">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Rating</span>
+              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+            </div>
+            <span className="text-xl sm:text-2xl font-black text-slate-900 block">
+              {worker?.workerProfile?.averageRating || 5.0} ★
+            </span>
+            <span className="text-[10px] text-slate-400 font-semibold">Verified Partner</span>
+          </div>
+
+          <div
+            onClick={toggleOnlineStatus}
+            className={`p-4 sm:p-5 rounded-3xl border shadow-sm cursor-pointer transition-all ${
+              isOnline
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                : 'bg-slate-100 border-slate-200 text-slate-700'
+            }`}
+          >
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Duty Status</span>
+              <Zap className={`w-4 h-4 ${isOnline ? 'text-emerald-600 animate-pulse' : 'text-slate-400'}`} />
+            </div>
+            <span className="text-xl sm:text-2xl font-black block">
+              {isOnline ? 'ONLINE' : 'OFFLINE'}
+            </span>
+            <span className="text-[10px] font-semibold opacity-80">
+              {isOnline ? '🟢 Ready for dispatches' : 'Tap to go Online'}
+            </span>
+          </div>
+        </div>
+
         {/* PROMINENT INCOMING JOB BANNER IF ASSIGNED */}
         {pendingAssignmentJob && (
           <div className="bg-gradient-to-r from-emerald-50 via-white to-indigo-50 border-2 border-emerald-500 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl animate-pulse">

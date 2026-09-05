@@ -9,6 +9,7 @@ import { WorkerServicesPage } from './pages/WorkerServicesPage';
 import { WorkerAuthPage } from './pages/WorkerAuthPage';
 import { JobRequestAlert } from './components/JobRequestAlert';
 import { WorkerGlobalNotification } from './components/WorkerGlobalNotification';
+import { WorkerBottomNav } from './components/WorkerBottomNav';
 
 const GlobalJobAlert: React.FC = () => {
   const { activeJobAlert, setActiveJobAlert } = useWorkerAuth();
@@ -28,6 +29,7 @@ export function App() {
         <BrowserRouter>
           <GlobalJobAlert />
           <WorkerGlobalNotification />
+          <WorkerBottomNav />
           <Routes>
             <Route path="/" element={<WorkerDashboardPage />} />
             <Route path="/auth" element={<WorkerAuthPage />} />

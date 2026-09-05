@@ -11,6 +11,7 @@ import { BookingsListPage } from './pages/BookingsListPage';
 import { AuthPage } from './pages/AuthPage';
 import { SupportPage } from './pages/SupportPage';
 import { GlobalNotificationToast } from './components/GlobalNotificationToast';
+import { BottomNav } from './components/BottomNav';
 
 export function App() {
   return (
@@ -18,6 +19,7 @@ export function App() {
       <AuthProvider>
         <BrowserRouter>
           <GlobalNotificationToast />
+          <BottomNav />
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/services" element={<ServicesPage />} />
