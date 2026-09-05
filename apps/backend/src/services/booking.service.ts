@@ -270,21 +270,28 @@ export class BookingService {
   static async rejectJob(workerId: string, bookingId: string) {
     await prisma.$transaction(async (tx: any) => {
       const booking = await tx.booking.findUnique({ where: { id: bookingId } });
-      if (!booking || booking.workerId !== workerId) return;
+      if (!booking) return;
 
-      await tx.booking.update({
-        where: { id: bookingId },
-        data: {
-          workerId: null,
-          status: BookingStatus.SEARCHING_WORKER
-        }
-      });
+      if (booking.workerId === workerId) {
+        await tx.booking.update({
+          where: { id: bookingId },
+          data: {
+            workerId: null,
+            status: BookingStatus.SEARCHING_WORKER
+          }
+        });
+
+        await tx.workerProfile.update({
+          where: { id: workerId },
+          data: { status: WorkerStatus.ONLINE }
+        });
+      }
 
       await tx.bookingStatusHistory.create({
         data: {
           bookingId,
           status: BookingStatus.SEARCHING_WORKER,
-          note: 'Assigned worker declined job, searching next available worker',
+          note: 'Worker declined job, searching next available worker',
           changedBy: workerId
         }
       });

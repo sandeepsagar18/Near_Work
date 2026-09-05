@@ -27,11 +27,12 @@ export const JobRequestAlert: React.FC<JobRequestAlertProps> = ({ alert, onDismi
   const [timeLeft, setTimeLeft] = useState(alert.expiresInSeconds || 60);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Play notification chime and vocal announcement
+  // Play notification chime and vocal announcement whenever alert changes
   useEffect(() => {
     playSound('alert');
     speakVoice(`New booking dispatch for ${alert.serviceName || 'service'}`);
-  }, []);
+    setTimeLeft(alert.expiresInSeconds || 60);
+  }, [alert.bookingId]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -46,7 +47,7 @@ export const JobRequestAlert: React.FC<JobRequestAlertProps> = ({ alert, onDismi
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [onDismiss]);
+  }, [alert.bookingId, onDismiss]);
 
   const handleAccept = async () => {
     setIsProcessing(true);

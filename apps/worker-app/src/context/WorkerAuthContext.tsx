@@ -187,19 +187,35 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       const handleJobAssigned = (data: any) => {
         const currentWorker = workerRef.current || worker;
-        // Strictly check that worker is ONLINE; if OFFLINE, ignore completely
-        if (currentWorker?.workerProfile?.status !== WorkerStatus.ONLINE) {
-          return;
-        }
-        // If worker has already declined 2 times, do not show alert
-        if ((declinedCountsRef.current[data.bookingId] || 0) >= 2) {
+        // Ignore ONLY if worker explicitly toggled OFFLINE
+        if (currentWorker?.workerProfile?.status === WorkerStatus.OFFLINE) {
           return;
         }
         setActiveJobAlert(data);
       };
 
       const handleJobCancelled = (data: any) => {
-        setActiveJobAlert((prev: any) => (prev?.bookingId === data.bookingId ? null : prev));
+        setActiveJobAlert((prev: any) => (prev?.bookingId === data?.bookingId ? null : prev));
+        if (data?.bookingId) {
+          setDeclinedCounts((prev) => {
+            const next = { ...prev };
+            delete next[data.bookingId];
+            try {
+              sessionStorage.setItem('nw_declined_counts', JSON.stringify(next));
+            } catch {}
+            return next;
+          });
+        }
+        refreshProfile().catch(() => {});
+      };
+
+      const handleJobCompleted = () => {
+        setActiveJobAlert(null);
+        refreshProfile().catch(() => {});
+      };
+
+      const handleBookingAccepted = () => {
+        refreshProfile().catch(() => {});
       };
 
       const handleJobTaken = (data: any) => {
@@ -215,6 +231,8 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       socket.on('booking:dispatch', handleJobAssigned);
       socket.on('booking:new', handleJobAssigned);
       socket.on(SOCKET_EVENTS.BOOKING_CANCELLED, handleJobCancelled);
+      socket.on(SOCKET_EVENTS.BOOKING_ACCEPTED, handleBookingAccepted);
+      socket.on(SOCKET_EVENTS.SERVICE_COMPLETED, handleJobCompleted);
       socket.on('booking:taken', handleJobTaken);
 
       return () => {
@@ -228,6 +246,8 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         socket.off('booking:dispatch', handleJobAssigned);
         socket.off('booking:new', handleJobAssigned);
         socket.off(SOCKET_EVENTS.BOOKING_CANCELLED, handleJobCancelled);
+        socket.off(SOCKET_EVENTS.BOOKING_ACCEPTED, handleBookingAccepted);
+        socket.off(SOCKET_EVENTS.SERVICE_COMPLETED, handleJobCompleted);
         socket.off('booking:taken', handleJobTaken);
       };
     }
