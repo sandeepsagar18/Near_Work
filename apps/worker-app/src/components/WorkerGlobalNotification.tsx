@@ -103,33 +103,33 @@ export const WorkerGlobalNotification: React.FC = () => {
 
   return (
     <>
-      <div className="fixed top-4 right-4 left-4 sm:left-auto sm:w-96 z-50 animate-in slide-in-from-top-4 duration-300">
+      <div className="fixed top-4 right-4 left-4 sm:left-auto sm:w-96 z-50 animate-in slide-in-from-top-4 duration-300 font-sans">
         <div
           onClick={handleToastClick}
           className={`p-4 rounded-3xl shadow-2xl border backdrop-blur-md flex items-start space-x-3 cursor-pointer transition-all hover:scale-[1.02] active:scale-98 ${
             isCancelled
-              ? 'bg-red-950/95 border-red-500 text-white ring-2 ring-red-500/50'
-              : 'bg-slate-900 border-indigo-500 text-white'
+              ? 'bg-red-50 border-red-300 text-red-900 ring-2 ring-red-400/50'
+              : 'bg-white border-indigo-200 text-slate-900 shadow-xl'
           }`}
         >
           <div
             className={`w-10 h-10 rounded-2xl border flex items-center justify-center flex-shrink-0 ${
               isCancelled
-                ? 'bg-red-500/20 text-red-400 border-red-500/40'
-                : 'bg-indigo-500/20 text-indigo-400 border-indigo-400/40'
+                ? 'bg-red-100 text-red-600 border-red-200'
+                : 'bg-indigo-50 text-indigo-600 border-indigo-200'
             }`}
           >
             {isCancelled ? <AlertOctagon className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
           </div>
 
           <div className="flex-1 min-w-0 pr-1">
-            <span className="text-xs font-black block tracking-tight text-white">{toast.title}</span>
-            <p className="text-xs text-slate-200 mt-0.5 line-clamp-2 leading-relaxed">
+            <span className={`text-xs font-black block tracking-tight ${isCancelled ? 'text-red-900' : 'text-slate-900'}`}>{toast.title}</span>
+            <p className={`text-xs mt-0.5 line-clamp-2 leading-relaxed ${isCancelled ? 'text-red-700' : 'text-slate-600'}`}>
               {toast.message}
             </p>
             <span
               className={`text-[10px] underline font-bold mt-1.5 inline-flex items-center space-x-1 ${
-                isCancelled ? 'text-red-300' : 'text-indigo-400'
+                isCancelled ? 'text-red-700' : 'text-indigo-600'
               }`}
             >
               <span>{isCancelled ? 'Tap to return to dashboard' : 'Tap to open chat & reply'}</span>
@@ -142,7 +142,7 @@ export const WorkerGlobalNotification: React.FC = () => {
               e.stopPropagation();
               setToast(null);
             }}
-            className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10"
+            className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>

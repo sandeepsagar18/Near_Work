@@ -109,13 +109,15 @@ interface WorkerRadarWidgetProps {
   initialLng?: number;
   workerName?: string;
   isOnline?: boolean;
+  onToggleOnline?: () => void;
 }
 
 export const WorkerRadarWidget: React.FC<WorkerRadarWidgetProps> = ({
   initialLat = 26.7606,
   initialLng = 83.3732,
   workerName = 'Service Partner',
-  isOnline = true
+  isOnline = true,
+  onToggleOnline
 }) => {
   const [workerPos, setWorkerPos] = useState<[number, number]>(() => {
     try {
@@ -250,15 +252,21 @@ export const WorkerRadarWidget: React.FC<WorkerRadarWidgetProps> = ({
         </div>
 
         <div className="flex items-center space-x-2 text-xs">
-          <div className={`px-3 py-1 rounded-full flex items-center space-x-1.5 font-medium ${
-            isOnline ? 'bg-emerald-950/80 border border-emerald-500/30 text-emerald-400' : 'bg-slate-800 border border-slate-700 text-slate-400'
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400 shadow-[0_0_8px_#10b981]' : 'bg-slate-500'}`}></span>
-            <span className="text-[11px]">{isOnline ? 'Listening for Jobs' : 'Offline'}</span>
-          </div>
+          <button
+            onClick={onToggleOnline}
+            className={`px-3 py-1.5 rounded-full flex items-center space-x-1.5 font-bold transition-all cursor-pointer ${
+              isOnline
+                ? 'bg-emerald-950/90 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-900/60 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                : 'bg-red-950/80 border border-red-500/40 text-red-300 hover:bg-red-900/60'
+            }`}
+            title={isOnline ? 'Click to go Offline' : 'Click to go Online'}
+          >
+            <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse' : 'bg-red-500'}`}></span>
+            <span className="text-[11px]">{isOnline ? '🟢 Live & Online' : '🔴 Offline (Standby)'}</span>
+          </button>
           <button
             onClick={() => setTileStyleIndex((prev) => (prev + 1) % TILE_STYLES.length)}
-            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 px-3 py-1 rounded-full flex items-center space-x-1.5 font-medium transition cursor-pointer"
+            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-full flex items-center space-x-1.5 font-medium transition cursor-pointer"
           >
             <Layers className="w-3.5 h-3.5 text-emerald-400" />
             <span className="text-[11px]">{currentStyle.name}</span>

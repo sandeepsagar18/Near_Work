@@ -125,9 +125,19 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         userId: worker.id
       });
 
-      // Ultra-Fast Real-Time Phone GPS Broadcaster (watchPosition + 1s active stream)
+      // Ultra-Fast Real-Time Phone GPS Broadcaster (Only active when ONLINE)
       let watchId: number | null = null;
+      let heartbeatTimer: any = null;
+
+      const isWorkerOnline = worker.workerProfile?.status === WorkerStatus.ONLINE;
+
       const broadcastCoords = (pos: GeolocationPosition) => {
+        // Strict guard: Do not stream location if worker is offline
+        const currentStatus = workerRef.current?.workerProfile?.status;
+        if (currentStatus !== WorkerStatus.ONLINE) {
+          return;
+        }
+
         const { latitude, longitude, speed, heading, accuracy, altitude } = pos.coords;
         const speedKmh = speed !== null && speed !== undefined && !isNaN(speed) && speed > 0 ? Math.round(speed * 3.6) : 0;
 
@@ -157,28 +167,28 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }).catch(() => {});
       };
 
-      if ('geolocation' in navigator) {
+      if (isWorkerOnline && 'geolocation' in navigator) {
         watchId = navigator.geolocation.watchPosition(
           broadcastCoords,
           () => {},
           { enableHighAccuracy: true, maximumAge: 0, timeout: 2000 }
         );
-      }
 
-      const heartbeatTimer = setInterval(() => {
-        if ('geolocation' in navigator) {
-          navigator.geolocation.getCurrentPosition(
-            broadcastCoords,
-            () => {},
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 1500 }
-          );
-        }
-      }, 1000);
+        heartbeatTimer = setInterval(() => {
+          if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(
+              broadcastCoords,
+              () => {},
+              { enableHighAccuracy: true, maximumAge: 0, timeout: 1500 }
+            );
+          }
+        }, 1000);
+      }
 
       const handleJobAssigned = (data: any) => {
         const currentWorker = workerRef.current || worker;
-        // If worker is explicitly OFFLINE, skip
-        if (currentWorker?.workerProfile?.status === WorkerStatus.OFFLINE) {
+        // Strictly check that worker is ONLINE; if OFFLINE, ignore completely
+        if (currentWorker?.workerProfile?.status !== WorkerStatus.ONLINE) {
           return;
         }
         // If worker has already declined 2 times, do not show alert
@@ -211,7 +221,9 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (watchId !== null && 'geolocation' in navigator) {
           navigator.geolocation.clearWatch(watchId);
         }
-        clearInterval(heartbeatTimer);
+        if (heartbeatTimer) {
+          clearInterval(heartbeatTimer);
+        }
         socket.off(SOCKET_EVENTS.BOOKING_ASSIGNED, handleJobAssigned);
         socket.off('booking:dispatch', handleJobAssigned);
         socket.off('booking:new', handleJobAssigned);
@@ -235,6 +247,10 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
 
       if (res.success) {
+        if (nextStatus === WorkerStatus.OFFLINE) {
+          setActiveJobAlert(null);
+        }
+
         setWorker({
           ...worker,
           workerProfile: {
@@ -242,6 +258,62 @@ export const WorkerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             status: nextStatus
           }
         });
+
+        // If newly ONLINE, immediately send a one-off GPS sync and check pending unaccepted jobs
+        if (nextStatus === WorkerStatus.ONLINE) {
+          if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(
+              async (pos) => {
+                const { latitude, longitude, speed, heading, accuracy } = pos.coords;
+                try {
+                  await WorkerApiClient.request('/worker/location', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      latitude,
+                      longitude,
+                      speed: speed ? Math.round(speed * 3.6) : 0,
+                      heading: heading || 0,
+                      accuracy: accuracy || 5,
+                      altitude: 124
+                    })
+                  });
+                } catch {}
+              },
+              () => {},
+              { enableHighAccuracy: true, timeout: 5000 }
+            );
+          }
+
+          // Immediately check for pending unaccepted jobs waiting for partners
+          try {
+            const jobsRes = await WorkerApiClient.request('/worker/jobs');
+            if (jobsRes.success && jobsRes.data && jobsRes.data.length > 0) {
+              const pendingUnaccepted = jobsRes.data.find(
+                (j: any) =>
+                  (j.status === 'SEARCHING_WORKER' || j.status === 'WORKER_ASSIGNED') &&
+                  !j.workerId &&
+                  (declinedCountsRef.current[j.id] || 0) < 2
+              );
+
+              if (pendingUnaccepted) {
+                setActiveJobAlert({
+                  bookingId: pendingUnaccepted.id,
+                  bookingNumber: pendingUnaccepted.bookingNumber,
+                  serviceName: pendingUnaccepted.service?.name || 'Service Job',
+                  customerName: pendingUnaccepted.customer?.name || 'Customer',
+                  scheduledDate: pendingUnaccepted.scheduledDate,
+                  scheduledTimeSlot: pendingUnaccepted.scheduledTimeSlot,
+                  address: `${pendingUnaccepted.address?.addressLine || ''}, ${pendingUnaccepted.address?.city || ''}`,
+                  distanceKm: 2.5,
+                  estimatedEarnings: Math.round(pendingUnaccepted.totalAmount * 0.8),
+                  expiresInSeconds: 60
+                });
+              }
+            }
+          } catch (e) {
+            // non-blocking
+          }
+        }
       }
     } catch (e) {
       console.error(e);

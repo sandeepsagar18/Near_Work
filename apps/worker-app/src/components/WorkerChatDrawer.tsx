@@ -87,21 +87,21 @@ export const WorkerChatDrawer: React.FC<WorkerChatDrawerProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex justify-end">
-      <div className="bg-slate-900 border-l border-slate-800 w-full max-w-md h-full flex flex-col shadow-2xl animate-in slide-in-from-right text-white">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-end font-sans">
+      <div className="bg-white border-l border-slate-200 w-full max-w-md h-full flex flex-col shadow-2xl animate-in slide-in-from-right text-slate-900">
         {/* Header */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-800/80">
+        <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div>
-            <h3 className="font-bold text-sm text-white">Chat with {customerName}</h3>
-            <span className="text-xs text-emerald-400">Customer</span>
+            <h3 className="font-bold text-sm text-slate-900">Chat with {customerName}</h3>
+            <span className="text-xs text-emerald-600 font-semibold">Customer</span>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-slate-700 text-slate-400">
+          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Message stream */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-950">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
           {messages.map((msg, index) => {
             const isMe =
               msg.senderId === worker?.id ||
@@ -112,16 +112,16 @@ export const WorkerChatDrawer: React.FC<WorkerChatDrawerProps> = ({
             return (
               <div key={index} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                 <div
-                  className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-xs shadow-md ${
+                  className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-xs shadow-sm ${
                     isMe
                       ? 'bg-emerald-600 text-white rounded-br-none'
-                      : 'bg-slate-800 text-slate-100 border border-slate-700 rounded-bl-none'
+                      : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
                   }`}
                 >
                   <p className="leading-relaxed">{msg.message}</p>
                   <span
                     className={`text-[9px] block mt-1 ${
-                      isMe ? 'text-emerald-200 text-right' : 'text-slate-400 text-left'
+                      isMe ? 'text-emerald-100 text-right' : 'text-slate-400 text-left'
                     }`}
                   >
                     {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], {
@@ -137,18 +137,18 @@ export const WorkerChatDrawer: React.FC<WorkerChatDrawerProps> = ({
         </div>
 
         {/* Form input */}
-        <form onSubmit={handleSend} className="p-3 border-t border-slate-800 bg-slate-900 flex items-center space-x-2">
+        <form onSubmit={handleSend} className="p-3 border-t border-slate-200 bg-white flex items-center space-x-2">
           <input
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder="Type a message to customer..."
-            className="flex-1 px-4 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-full text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-900 rounded-full text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
           <button
             type="submit"
             disabled={!inputText.trim()}
-            className="p-2.5 bg-emerald-500 text-slate-950 rounded-full font-bold hover:bg-emerald-400 disabled:opacity-50"
+            className="p-2.5 bg-emerald-600 text-white rounded-full font-bold hover:bg-emerald-500 disabled:opacity-50 cursor-pointer shadow-md transition-all"
           >
             <Send className="w-4 h-4" />
           </button>

@@ -3,6 +3,7 @@ import { HTTP_STATUS, ERROR_CODES } from '@nearwork/config';
 import { prisma } from '../config/db';
 import { BookingStatus, WorkerStatus } from '@nearwork/types';
 import { EarningService } from '../services/earning.service';
+import { MatchingService } from '../services/matching.service';
 
 export class WorkerController {
   /**
@@ -54,6 +55,13 @@ export class WorkerController {
         where: { id: workerId },
         data: { status }
       });
+
+      // If worker switched to ONLINE, immediately dispatch all pending unaccepted matching bookings
+      if (status === WorkerStatus.ONLINE) {
+        MatchingService.dispatchPendingBookingsForOnlineWorker(workerId).catch((err) => {
+          console.error('Error dispatching pending bookings to online worker:', err);
+        });
+      }
 
       res.status(HTTP_STATUS.OK).json({
         success: true,
@@ -166,9 +174,11 @@ export class WorkerController {
       const skillCategoryIds = worker?.skills.map((s) => s.categoryId) || [];
 
       let where: any = {};
+      const isOnline = worker?.status === WorkerStatus.ONLINE;
+
       if (status) {
         where = { workerId, status };
-      } else {
+      } else if (isOnline) {
         where = {
           OR: [
             { workerId },
@@ -179,6 +189,9 @@ export class WorkerController {
             }
           ]
         };
+      } else {
+        // When offline, only return jobs already accepted or assigned to this specific worker
+        where = { workerId };
       }
 
       const jobs = await prisma.booking.findMany({

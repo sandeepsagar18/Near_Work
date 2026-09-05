@@ -243,32 +243,96 @@ export class MatchingService {
           `user:${candidate.userId}`
         ]).emit(SOCKET_EVENTS.BOOKING_ASSIGNED, alertPayload);
 
-        io.to([
-          `worker:${candidate.workerId}`,
-          `worker:${candidate.userId}`,
-          `user:${candidate.userId}`
-        ]).emit('booking:dispatch', alertPayload);
       }
     }
 
-    if (io && availableCandidates.length > 0) {
-      const genericPayload = {
-        bookingId: booking.id,
-        bookingNumber: booking.bookingNumber,
-        serviceName: booking.service.name,
-        customerName: booking.customer.name,
-        scheduledDate: booking.scheduledDate,
-        scheduledTimeSlot: booking.scheduledTimeSlot,
-        address: `${booking.address.addressLine}, ${booking.address.city}`,
-        distanceKm: availableCandidates[0].distanceKm,
-        estimatedEarnings: Math.round(booking.totalAmount * 0.8),
-        expiresInSeconds: APP_CONFIG.jobAcceptanceTimeoutSeconds
-      };
-      io.to('workers:all').emit('booking:dispatch', genericPayload);
-      io.to('workers:all').emit(SOCKET_EVENTS.BOOKING_ASSIGNED, genericPayload);
-      io.emit('booking:dispatch', genericPayload);
+    return true;
+  }
+
+  /**
+   * Automatically scans for all pending unaccepted SEARCHING_WORKER bookings and dispatches them to a newly online worker
+   */
+  static async dispatchPendingBookingsForOnlineWorker(workerId: string): Promise<void> {
+    const worker = await prisma.workerProfile.findUnique({
+      where: { id: workerId },
+      include: {
+        skills: true,
+        user: { select: { id: true, name: true, phone: true } }
+      }
+    });
+
+    if (!worker || worker.status !== WorkerStatus.ONLINE || worker.verificationStatus !== WorkerVerificationStatus.VERIFIED) {
+      return;
     }
 
-    return true;
+    const skillCategoryIds = worker.skills.map((s) => s.categoryId);
+
+    // Find all active unassigned SEARCHING_WORKER bookings matching this worker's skills
+    const pendingBookings = await prisma.booking.findMany({
+      where: {
+        workerId: null,
+        status: BookingStatus.SEARCHING_WORKER,
+        ...(skillCategoryIds.length > 0 ? { service: { categoryId: { in: skillCategoryIds } } } : {})
+      },
+      include: {
+        service: { select: { categoryId: true, name: true, basePrice: true } },
+        address: true,
+        customer: { select: { name: true, phone: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (pendingBookings.length === 0) return;
+
+    const io = getSocketIO();
+
+    for (const booking of pendingBookings) {
+      // Check if worker previously declined 2 times
+      const declines = await prisma.bookingStatusHistory.count({
+        where: {
+          bookingId: booking.id,
+          status: BookingStatus.SEARCHING_WORKER,
+          OR: [{ changedBy: worker.id }, { changedBy: worker.userId }]
+        }
+      });
+
+      if (declines >= 2) continue;
+
+      const workerLat = worker.currentLat ?? booking.address.latitude;
+      const workerLng = worker.currentLng ?? booking.address.longitude;
+      const distanceKm = Math.round(calculateDistanceKm(booking.address.latitude, booking.address.longitude, workerLat, workerLng) * 10) / 10;
+
+      // Create in-app notification record
+      prisma.notification.create({
+        data: {
+          userId: worker.userId,
+          title: '⚡ Unaccepted Service Job Available!',
+          message: `Booking for ${booking.service.name} in ${booking.address.city} is waiting for a partner. Accept now!`,
+          type: 'JOB_ASSIGNMENT',
+          data: JSON.stringify({ link: `/job/${booking.id}` })
+        }
+      }).catch(() => {});
+
+      if (io) {
+        const alertPayload = {
+          bookingId: booking.id,
+          bookingNumber: booking.bookingNumber,
+          serviceName: booking.service.name,
+          customerName: booking.customer.name,
+          scheduledDate: booking.scheduledDate,
+          scheduledTimeSlot: booking.scheduledTimeSlot,
+          address: `${booking.address.addressLine}, ${booking.address.city}`,
+          distanceKm,
+          estimatedEarnings: Math.round(booking.totalAmount * 0.8),
+          expiresInSeconds: APP_CONFIG.jobAcceptanceTimeoutSeconds
+        };
+
+        io.to([
+          `worker:${worker.id}`,
+          `worker:${worker.userId}`,
+          `user:${worker.userId}`
+        ]).emit(SOCKET_EVENTS.BOOKING_ASSIGNED, alertPayload);
+      }
+    }
   }
 }

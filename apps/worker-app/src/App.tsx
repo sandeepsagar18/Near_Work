@@ -5,6 +5,7 @@ import { WorkerLanguageProvider } from './context/LanguageContext';
 import { WorkerDashboardPage } from './pages/WorkerDashboardPage';
 import { ActiveJobPage } from './pages/ActiveJobPage';
 import { WorkerEarningsPage } from './pages/WorkerEarningsPage';
+import { WorkerServicesPage } from './pages/WorkerServicesPage';
 import { WorkerAuthPage } from './pages/WorkerAuthPage';
 import { JobRequestAlert } from './components/JobRequestAlert';
 import { WorkerGlobalNotification } from './components/WorkerGlobalNotification';
@@ -31,6 +32,7 @@ export function App() {
             <Route path="/" element={<WorkerDashboardPage />} />
             <Route path="/auth" element={<WorkerAuthPage />} />
             <Route path="/job/:id" element={<ActiveJobPage />} />
+            <Route path="/services" element={<WorkerServicesPage />} />
             <Route path="/earnings" element={<WorkerEarningsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

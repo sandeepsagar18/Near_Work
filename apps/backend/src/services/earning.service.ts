@@ -37,20 +37,38 @@ export class EarningService {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Calculate today's earnings
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Calculate time-based service counts and earnings
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const todayEarnings = earnings
-      .filter((e: any) => new Date(e.createdAt) >= today)
-      .reduce((sum: number, e: any) => sum + e.netWorkerEarning, 0);
+    const todayEarningsList = earnings.filter((e: any) => new Date(e.createdAt) >= today);
+    const weekEarningsList = earnings.filter((e: any) => new Date(e.createdAt) >= sevenDaysAgo);
+    const monthEarningsList = earnings.filter((e: any) => new Date(e.createdAt) >= thirtyDaysAgo);
+
+    const todayEarnings = todayEarningsList.reduce((sum: number, e: any) => sum + e.netWorkerEarning, 0);
+    const weekEarnings = weekEarningsList.reduce((sum: number, e: any) => sum + e.netWorkerEarning, 0);
+    const monthEarnings = monthEarningsList.reduce((sum: number, e: any) => sum + e.netWorkerEarning, 0);
+    const totalLifetimeEarnings = earnings.reduce((sum: number, e: any) => sum + e.netWorkerEarning, 0);
+
+    const todayJobsCount = todayEarningsList.length;
+    const weekJobsCount = weekEarningsList.length;
+    const monthJobsCount = monthEarningsList.length;
+    const totalJobsCompleted = worker.totalJobsCompleted || earnings.length;
 
     return {
       availableBalance: worker.availableBalance,
       pendingBalance: worker.pendingBalance,
       totalWithdrawn: worker.totalWithdrawn,
       todayEarnings,
-      totalJobsCompleted: worker.totalJobsCompleted,
+      weekEarnings,
+      monthEarnings,
+      totalLifetimeEarnings,
+      todayJobsCount,
+      weekJobsCount,
+      monthJobsCount,
+      totalJobsCompleted,
       averageRating: worker.averageRating,
       earnings,
       payouts
