@@ -121,71 +121,74 @@ export const Header: React.FC = () => {
                 </span>
               </button>
 
-              {user ? (
-                <div className="relative flex-shrink-0">
-                  <button
-                    onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center space-x-1.5 p-1 sm:p-1.5 rounded-2xl hover:bg-gray-100 transition-colors cursor-pointer"
-                  >
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-600 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow-md shadow-indigo-600/20">
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="hidden sm:inline text-xs font-bold text-gray-800">
-                      {user.name.split(' ')[0]}
-                    </span>
-                    <ChevronDown className="w-3 h-3 text-gray-400" />
-                  </button>
-
-                  {/* Dropdown */}
-                  {showUserMenu && (
-                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 animate-in fade-in">
-                      <div className="px-4 py-2 border-b border-gray-50">
-                        <p className="font-bold text-xs text-gray-900 truncate">{user.name}</p>
-                        <p className="text-[10px] text-gray-500 truncate">{user.email || user.phone}</p>
+              {/* Desktop / Tablet User Profile & Sign In Button (Hidden on Mobile) */}
+              <div className="hidden md:flex items-center">
+                {user ? (
+                  <div className="relative flex-shrink-0">
+                    <button
+                      onClick={() => setShowUserMenu(!showUserMenu)}
+                      className="flex items-center space-x-1.5 p-1 sm:p-1.5 rounded-2xl hover:bg-gray-100 transition-colors cursor-pointer"
+                    >
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-600 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow-md shadow-indigo-600/20">
+                        {user.name.charAt(0).toUpperCase()}
                       </div>
-                      <button
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          navigate('/bookings');
-                        }}
-                        className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center space-x-2 transition-colors cursor-pointer"
-                      >
-                        <Calendar className="w-4 h-4 text-indigo-600" />
-                        <span>{t('nav.bookings', 'My Bookings')}</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          navigate('/support');
-                        }}
-                        className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center space-x-2 transition-colors cursor-pointer"
-                      >
-                        <Headphones className="w-4 h-4 text-indigo-600" />
-                        <span>24/7 Customer Support</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          logout();
-                          navigate('/auth');
-                        }}
-                        className="w-full text-left px-4 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center space-x-2 border-t border-gray-50 mt-1 transition-colors cursor-pointer"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        <span>{t('nav.logout', 'Sign Out')}</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <button
-                  onClick={() => navigate('/auth')}
-                  className="hidden sm:flex px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-md shadow-indigo-600/20 items-center space-x-1.5 transition-transform active:scale-95 cursor-pointer whitespace-nowrap flex-shrink-0"
-                >
-                  <LogIn className="w-3.5 h-3.5" />
-                  <span>{t('nav.login', 'Sign In')}</span>
-                </button>
-              )}
+                      <span className="text-xs font-bold text-gray-800">
+                        {user.name.split(' ')[0]}
+                      </span>
+                      <ChevronDown className="w-3 h-3 text-gray-400" />
+                    </button>
+
+                    {/* Dropdown */}
+                    {showUserMenu && (
+                      <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 animate-in fade-in">
+                        <div className="px-4 py-2 border-b border-gray-50">
+                          <p className="font-bold text-xs text-gray-900 truncate">{user.name}</p>
+                          <p className="text-[10px] text-gray-500 truncate">{user.email || user.phone}</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setShowUserMenu(false);
+                            navigate('/bookings');
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center space-x-2 transition-colors cursor-pointer"
+                        >
+                          <Calendar className="w-4 h-4 text-indigo-600" />
+                          <span>{t('nav.bookings', 'My Bookings')}</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowUserMenu(false);
+                            navigate('/support');
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center space-x-2 transition-colors cursor-pointer"
+                        >
+                          <Headphones className="w-4 h-4 text-indigo-600" />
+                          <span>24/7 Customer Support</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowUserMenu(false);
+                            logout();
+                            navigate('/auth');
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center space-x-2 border-t border-gray-50 mt-1 transition-colors cursor-pointer"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          <span>{t('nav.logout', 'Sign Out')}</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => navigate('/auth')}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-md shadow-indigo-600/20 flex items-center space-x-1.5 transition-transform active:scale-95 cursor-pointer whitespace-nowrap flex-shrink-0"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>{t('nav.login', 'Sign In')}</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

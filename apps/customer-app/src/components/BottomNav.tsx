@@ -55,7 +55,7 @@ export const BottomNav: React.FC = () => {
         </NavLink>
 
         <NavLink
-          to={user ? '/support' : '/auth'}
+          to="/support"
           className={({ isActive }) =>
             `flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-200 ${
               isActive
@@ -64,8 +64,24 @@ export const BottomNav: React.FC = () => {
             }`
           }
         >
-          {user ? <Headphones className="w-5 h-5 mb-1" /> : <User className="w-5 h-5 mb-1" />}
-          <span className="text-[10px] tracking-tight">{user ? 'Support' : t('nav.login', 'Account')}</span>
+          <Headphones className="w-5 h-5 mb-1" />
+          <span className="text-[10px] tracking-tight">Support</span>
+        </NavLink>
+
+        <NavLink
+          to="/profile"
+          className={({ isActive }) =>
+            `flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-200 ${
+              isActive
+                ? 'text-indigo-600 font-black scale-105'
+                : 'text-gray-500 hover:text-gray-900 font-medium'
+            }`
+          }
+        >
+          <User className="w-5 h-5 mb-1" />
+          <span className="text-[10px] tracking-tight">
+            {user ? 'Account' : 'Sign In'}
+          </span>
         </NavLink>
       </div>
     </nav>

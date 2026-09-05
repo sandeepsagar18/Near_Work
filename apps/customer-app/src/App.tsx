@@ -10,6 +10,7 @@ import { TrackingPage } from './pages/TrackingPage';
 import { BookingsListPage } from './pages/BookingsListPage';
 import { AuthPage } from './pages/AuthPage';
 import { SupportPage } from './pages/SupportPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { GlobalNotificationToast } from './components/GlobalNotificationToast';
 import { BottomNav } from './components/BottomNav';
 
@@ -29,7 +30,7 @@ export function App() {
             <Route path="/booking/:id/track" element={<TrackingPage />} />
             <Route path="/bookings" element={<BookingsListPage />} />
             <Route path="/support" element={<SupportPage />} />
-            <Route path="/profile" element={<BookingsListPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
